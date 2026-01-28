@@ -358,6 +358,12 @@ export default function AgencyDashboardClient() {
               icon="explore"
               variant="default"
             />
+            <NavButton
+              href="/agency/profile"
+              label="My Profile"
+              icon="person"
+              variant="default"
+            />
             <ThemeToggle />
             <LogoutButton />
           </div>

@@ -397,7 +397,7 @@ export default function AdminDashboardClient() {
               {agencies.map((agency) => (
                 <Link
                   key={agency.id}
-                  href={`/agencies/${agency.id}`}
+                  href={`/admin/agencies/${agency.id}`}
                   className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-4">
@@ -459,7 +459,7 @@ export default function AdminDashboardClient() {
                 .map((agency) => (
                   <Link
                     key={agency.id}
-                    href={`/agencies/${agency.id}`}
+                    href={`/admin/agencies/${agency.id}`}
                     className="flex items-center justify-between p-4 rounded-xl border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-500/5 hover:bg-emerald-100/50 dark:hover:bg-emerald-500/10 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-4">
@@ -502,7 +502,8 @@ export default function AdminDashboardClient() {
           <div className="space-y-4">
             <div className="mb-4">
               <p className="text-slate-600 dark:text-slate-400">
-                These agencies are registered but haven't completed verification yet. They have limited access to platform features.
+                These agencies are registered but haven&apos;t completed verification yet. They have limited access to platform
+                features.
               </p>
             </div>
             <div className="space-y-2">
@@ -511,7 +512,7 @@ export default function AdminDashboardClient() {
                 .map((agency) => (
                   <Link
                     key={agency.id}
-                    href={`/agencies/${agency.id}`}
+                    href={`/admin/agencies/${agency.id}`}
                     className="flex items-center justify-between p-4 rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50/50 dark:bg-amber-500/5 hover:bg-amber-100/50 dark:hover:bg-amber-500/10 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-4">

@@ -22,7 +22,7 @@ export default function AgencyTripsClient({ agencyId }: AgencyTripsClientProps) 
       <div className="bg-background-light dark:bg-background-dark min-h-screen p-5">
         <Header title="Agency Not Found" variant="light" showThemeToggle={false} rightAction={<ThemeToggle />} />
         <RoundedBox padding="lg" className="text-center py-12 mt-6">
-          <p className="text-slate-600 dark:text-slate-400">The agency you're looking for doesn't exist.</p>
+          <p className="text-slate-600 dark:text-slate-400">The agency you&apos;re looking for doesn&apos;t exist.</p>
           <Button variant="outline" className="mt-4" onClick={() => router.back()}>
             Go Back
           </Button>
@@ -72,7 +72,6 @@ export default function AgencyTripsClient({ agencyId }: AgencyTripsClientProps) 
                   agency={{
                     name: trip.agency.name,
                     verified: trip.agency.verified,
-                    avatar: trip.agency.avatar,
                   }}
                   startDate={trip.startDate}
                   endDate={trip.endDate}

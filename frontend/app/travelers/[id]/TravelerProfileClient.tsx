@@ -33,7 +33,9 @@ export default function TravelerProfileClient({ travelerId }: TravelerProfileCli
       <div className="bg-background-light dark:bg-background-dark min-h-screen p-5">
         <Header title="Traveler Not Found" variant="light" showThemeToggle={false} rightAction={<ThemeToggle />} />
         <RoundedBox padding="lg" className="text-center py-12 mt-6">
-          <p className="text-slate-600 dark:text-slate-400">The traveler profile you're looking for doesn't exist.</p>
+          <p className="text-slate-600 dark:text-slate-400">
+            The traveler profile you&apos;re looking for doesn&apos;t exist.
+          </p>
           <Button variant="outline" className="mt-4" onClick={() => router.back()}>
             Go Back
           </Button>
@@ -48,7 +50,7 @@ export default function TravelerProfileClient({ travelerId }: TravelerProfileCli
         <Header title="Access Denied" variant="light" showThemeToggle={false} rightAction={<ThemeToggle />} />
         <RoundedBox padding="lg" className="text-center py-12 mt-6">
           <p className="text-slate-600 dark:text-slate-400">
-            You don't have permission to view this profile.
+            You don&apos;t have permission to view this profile.
           </p>
           <Button variant="outline" className="mt-4" onClick={() => router.back()}>
             Go Back

@@ -214,7 +214,7 @@ export default function TripDetailClient({ slug }: TripDetailClientProps) {
         {/* Highlights */}
         <RoundedBox variant="default" padding="lg">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-3">What's Included</h2>
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-3">What&apos;s Included</h2>
             <ul className="space-y-2">
               {trip.highlights.map((highlight, index) => (
                 <li key={index} className="flex items-start gap-2 text-slate-600 dark:text-slate-400">

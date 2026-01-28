@@ -49,7 +49,9 @@ export default function ForgotPasswordClient() {
             Check Your Email
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm mb-8 text-center leading-relaxed max-w-sm">
-            We've sent a password reset link to <span className="font-semibold text-slate-900 dark:text-white">{email}</span>. Please check your inbox and follow the instructions.
+            We&apos;ve sent a password reset link to{' '}
+            <span className="font-semibold text-slate-900 dark:text-white">{email}</span>. Please check your inbox and
+            follow the instructions.
           </p>
 
           <div className="w-full space-y-4">
@@ -97,7 +99,7 @@ export default function ForgotPasswordClient() {
           Forgot Password?
         </h1>
         <p className="text-slate-500 dark:text-slate-400 text-sm mb-8 text-center leading-relaxed">
-          No worries! Enter your email address and we'll send you a link to reset your password.
+          No worries! Enter your email address and we&apos;ll send you a link to reset your password.
         </p>
 
         <form className="w-full flex flex-col gap-5" onSubmit={handleSubmit}>

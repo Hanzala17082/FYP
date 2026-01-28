@@ -31,7 +31,7 @@ export default function AgencyProfileClient({ agencyId }: AgencyProfileClientPro
       <div className="bg-background-light dark:bg-background-dark min-h-screen p-5">
         <Header title="Agency Not Found" variant="light" showThemeToggle={false} rightAction={<ThemeToggle />} />
         <RoundedBox padding="lg" className="text-center py-12 mt-6">
-          <p className="text-slate-600 dark:text-slate-400">The agency you're looking for doesn't exist.</p>
+          <p className="text-slate-600 dark:text-slate-400">The agency you&apos;re looking for doesn&apos;t exist.</p>
           <Button variant="outline" className="mt-4" onClick={() => router.back()}>
             Go Back
           </Button>
@@ -133,41 +133,22 @@ export default function AgencyProfileClient({ agencyId }: AgencyProfileClientPro
           </div>
         </RoundedBox>
 
-        {/* Contact Information */}
+        {/* Contact / Communication (no personal contact info on public profile) */}
         <RoundedBox variant="default" padding="lg">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Contact Information</h2>
-          <div className="space-y-3">
-            {agency.contact.email && (
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">email</span>
-                <span className="text-slate-700 dark:text-slate-300">{agency.contact.email}</span>
-              </div>
-            )}
-            {agency.contact.phone && (
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">phone</span>
-                <span className="text-slate-700 dark:text-slate-300">{agency.contact.phone}</span>
-              </div>
-            )}
-            {agency.contact.website && (
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">language</span>
-                <a
-                  href={`https://${agency.contact.website}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-primary hover:underline"
-                >
-                  {agency.contact.website}
-                </a>
-              </div>
-            )}
-            {agency.contact.address && (
-              <div className="flex items-center gap-3">
-                <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">location_on</span>
-                <span className="text-slate-700 dark:text-slate-300">{agency.contact.address}</span>
-              </div>
-            )}
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Contact & Communication</h2>
+          <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
+            Direct contact details are not shown publicly. Conversations and trip updates will happen inside the dedicated
+            group for each trip.
+          </p>
+          <div className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-400">
+            <div className="flex items-start gap-2">
+              <span className="material-symbols-outlined text-primary text-[18px] mt-0.5">forum</span>
+              <span>After booking, you’ll be added to the trip group chat.</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <span className="material-symbols-outlined text-primary text-[18px] mt-0.5">info</span>
+              <span>All questions, announcements, and coordination happen there.</span>
+            </div>
           </div>
         </RoundedBox>
 
@@ -231,7 +212,6 @@ export default function AgencyProfileClient({ agencyId }: AgencyProfileClientPro
                     agency={{
                       name: trip.agency.name,
                       verified: trip.agency.verified,
-                      avatar: trip.agency.avatar,
                     }}
                     startDate={trip.startDate}
                     endDate={trip.endDate}
