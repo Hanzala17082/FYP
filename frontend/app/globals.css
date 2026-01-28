@@ -1,0 +1,48 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
+
+@layer base {
+  html {
+    background-color: #FFFFFF;
+  }
+  
+  html.dark {
+    background-color: #0a0f14;
+  }
+  
+  body {
+    font-family: 'Plus Jakarta Sans', sans-serif;
+    min-height: 100dvh;
+    background-color: inherit;
+  }
+}
+
+@layer utilities {
+  .hide-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .hide-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .glass-container {
+    background: rgba(16, 25, 34, 0.8);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+  }
+
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 20px);
+  }
+}
+
+@layer components {
+  .selection\:bg-primary\/30 ::selection {
+    background-color: rgba(19, 127, 236, 0.3);
+  }
+}

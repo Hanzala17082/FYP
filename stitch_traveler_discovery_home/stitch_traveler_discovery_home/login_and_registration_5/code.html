@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tripster Agency Registration - Dark Mode</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#137fec",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#0f172a",
+                        "card-dark": "#1e293b",
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "2xl": "1rem", "3xl": "1.5rem", "full": "9999px" },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            min-height: max(884px, 100dvh);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-dark text-slate-100 antialiased selection:bg-primary/30">
+<div class="relative min-h-screen flex flex-col w-full overflow-x-hidden">
+<div class="relative h-[30vh] w-full shrink-0">
+<div class="absolute inset-0 bg-gradient-to-b from-black/60 to-background-dark/20 z-10"></div>
+<div class="w-full h-full bg-center bg-no-repeat bg-cover" data-alt="Modern airport terminal lounge" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDh0bSL1iVgeARM6qePfOIh0hNQRBjVRhIPpevXbbzfQkiYtHKFnvj4bqYBhCjqC4YPjQF1OOQLd8Zwgp8S0Ml7e9L2livihz4sljgWGac1i7jUwyDxgzQtoupGgBeXaKpIE6qdEwCLnknvm5q9z-LKbKbi54elDt61QZPnA8FNgwDJKmcYrvJRmd0xBbkklBXRu5K1r0C08fk3Om9Mwe6bzDmz46BTInucSc-JeS1I6h4iFiSYKfizSZvRKw9w-8T9L09x0zAVC5o");'>
+</div>
+<div class="absolute top-0 left-0 w-full p-6 z-20 flex justify-between items-center">
+<div class="flex items-center gap-3 text-white drop-shadow-md">
+<span class="material-symbols-outlined text-4xl text-primary">flight_takeoff</span>
+<div class="flex flex-col">
+<span class="text-2xl font-bold tracking-wide leading-none">Tripster</span>
+<span class="text-[10px] font-semibold tracking-widest uppercase opacity-90 leading-tight">Travel Smarter</span>
+</div>
+</div>
+</div>
+</div>
+<div class="flex-1 relative -mt-10 z-30 bg-card-dark rounded-t-[2.5rem] shadow-[0_-8px_30px_rgba(0,0,0,0.5)] px-6 pt-8 pb-10 flex flex-col items-center w-full max-w-lg mx-auto border-t border-slate-700/50">
+<div class="w-12 h-1.5 bg-slate-700 rounded-full mb-8"></div>
+<h1 class="text-white tracking-tight text-[28px] font-bold leading-tight text-center mb-2">
+                Create Agency Account
+            </h1>
+<p class="text-slate-400 text-sm mb-8 text-center">
+                Register your business on Tripster to start managing global bookings.
+            </p>
+<div class="w-full mb-8">
+<div class="flex h-12 w-full items-center justify-center rounded-2xl bg-slate-900/50 p-1.5 border border-slate-700/50">
+<label class="flex cursor-pointer h-full flex-1 items-center justify-center overflow-hidden rounded-xl px-2 has-[:checked]:bg-slate-700 has-[:checked]:shadow-lg has-[:checked]:text-white transition-all duration-200 text-slate-500 text-sm font-semibold group">
+<span class="truncate">Traveler</span>
+<input class="invisible w-0" name="role_selector" type="radio" value="Traveler"/>
+</label>
+<label class="flex cursor-pointer h-full flex-1 items-center justify-center overflow-hidden rounded-xl px-2 has-[:checked]:bg-slate-700 has-[:checked]:shadow-lg has-[:checked]:text-white transition-all duration-200 text-slate-500 text-sm font-semibold group">
+<span class="truncate">Agency</span>
+<input checked="" class="invisible w-0" name="role_selector" type="radio" value="Agency"/>
+</label>
+</div>
+</div>
+<form class="w-full flex flex-col gap-6">
+<label class="flex flex-col w-full">
+<span class="text-slate-300 text-sm font-medium leading-normal pb-2 ml-1">Agency Name</span>
+<div class="relative">
+<input class="form-input flex w-full rounded-xl text-white border-slate-700 bg-slate-800/50 focus:border-primary focus:ring-1 focus:ring-primary h-14 px-4 text-base placeholder:text-slate-500 transition-all" placeholder="e.g. Global Travels Ltd." type="text"/>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">apartment</span>
+</div>
+</label>
+<label class="flex flex-col w-full">
+<span class="text-slate-300 text-sm font-medium leading-normal pb-2 ml-1">Business Email</span>
+<div class="relative">
+<input class="form-input flex w-full rounded-xl text-white border-slate-700 bg-slate-800/50 focus:border-primary focus:ring-1 focus:ring-primary h-14 px-4 text-base placeholder:text-slate-500 transition-all" placeholder="contact@agency.com" type="email"/>
+<span class="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-slate-500">mail</span>
+</div>
+</label>
+<label class="flex flex-col w-full">
+<span class="text-slate-300 text-sm font-medium leading-normal pb-2 ml-1">Password</span>
+<div class="relative flex w-full items-stretch rounded-xl">
+<input class="form-input flex w-full rounded-xl rounded-r-none border-r-0 border-slate-700 bg-slate-800/50 focus:border-primary focus:ring-1 focus:ring-primary focus:z-10 h-14 px-4 text-white placeholder:text-slate-500 text-base" placeholder="Create a password" type="password"/>
+<div class="flex items-center justify-center px-4 border border-l-0 border-slate-700 bg-slate-800/50 rounded-r-xl cursor-pointer hover:bg-slate-700 transition-colors text-slate-500">
+<span class="material-symbols-outlined text-[20px]">visibility_off</span>
+</div>
+</div>
+</label>
+<label class="flex flex-col w-full">
+<span class="text-slate-300 text-sm font-medium leading-normal pb-2 ml-1">Confirm Password</span>
+<div class="relative flex w-full items-stretch rounded-xl">
+<input class="form-input flex w-full rounded-xl rounded-r-none border-r-0 border-slate-700 bg-slate-800/50 focus:border-primary focus:ring-1 focus:ring-primary focus:z-10 h-14 px-4 text-white placeholder:text-slate-500 text-base" placeholder="Confirm your password" type="password"/>
+<div class="flex items-center justify-center px-4 border border-l-0 border-slate-700 bg-slate-800/50 rounded-r-xl cursor-pointer hover:bg-slate-700 transition-colors text-slate-500">
+<span class="material-symbols-outlined text-[20px]">visibility_off</span>
+</div>
+</div>
+</label>
+<label class="flex flex-col w-full group cursor-pointer">
+<span class="text-slate-300 text-sm font-medium leading-normal pb-2 ml-1">FBR Registration Document</span>
+<div class="w-full min-h-[140px] border-2 border-dashed border-slate-500 rounded-2xl flex flex-col items-center justify-center p-6 bg-slate-800/40 group-hover:bg-slate-800/60 group-hover:border-primary transition-all">
+<div class="w-12 h-12 rounded-full bg-slate-700 flex items-center justify-center mb-3 text-primary">
+<span class="material-symbols-outlined text-2xl">cloud_upload</span>
+</div>
+<p class="text-sm text-slate-200 font-medium text-center">Tap to upload verification file</p>
+<p class="text-xs text-slate-500 mt-1 text-center">PDF, JPG or PNG (Max 5MB)</p>
+<input accept=".pdf,.jpg,.jpeg,.png" class="hidden" type="file"/>
+</div>
+</label>
+<button class="mt-4 w-full h-14 bg-primary hover:bg-blue-600 active:scale-[0.98] text-white font-bold rounded-xl shadow-lg shadow-primary/20 transition-all duration-200 flex items-center justify-center gap-2 text-lg" type="button">
+                    Sign Up
+                </button>
+</form>
+<div class="relative w-full my-8 text-center">
+<div class="absolute inset-0 flex items-center">
+<div class="w-full border-t border-slate-700"></div>
+</div>
+<span class="relative bg-card-dark px-4 text-xs font-semibold text-slate-500 uppercase tracking-widest">Or continue with</span>
+</div>
+<div class="flex gap-4 w-full">
+<button class="flex-1 h-14 flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 transition-all text-white font-medium text-sm">
+<svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M23.7663 12.2764C23.7663 11.4607 23.6999 10.6406 23.5588 9.83807H12.2402V14.4591H18.722C18.4528 15.9494 17.5887 17.2678 16.3233 18.1056V21.1039H20.1903C22.4611 19.0139 23.7663 15.9274 23.7663 12.2764Z" fill="#4285F4"></path>
+<path d="M12.2401 24.0008C15.4765 24.0008 18.2059 22.9382 20.1945 21.1039L16.3275 18.1055C15.2517 18.8375 13.8627 19.252 12.2445 19.252C9.11391 19.252 6.45949 17.1399 5.50708 14.3003H1.5166V17.3912C3.55374 21.4434 7.70293 24.0008 12.2401 24.0008Z" fill="#34A853"></path>
+<path d="M5.50277 14.3003C4.99952 12.8099 4.99952 11.1961 5.50277 9.70575V6.61481H1.51674C-0.185512 10.0056 -0.185512 14.0004 1.51674 17.3912L5.50277 14.3003Z" fill="#FBBC05"></path>
+<path d="M12.2401 4.74966C13.9509 4.7232 15.6044 5.36697 16.8434 6.54867L20.2695 3.12262C18.1001 1.0855 15.2208 -0.0344664 12.2401 0.000808666C7.70293 0.000808666 3.55374 2.55822 1.5166 6.61481L5.50264 9.70575C6.45064 6.86173 9.10947 4.74966 12.2401 4.74966Z" fill="#EA4335"></path>
+</svg>
+                    Google
+                </button>
+<button class="flex-1 h-14 flex items-center justify-center gap-2 rounded-xl border border-slate-700 bg-slate-800/50 hover:bg-slate-700 transition-all text-white font-medium text-sm">
+<svg class="w-5 h-5 text-white" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+<path d="M17.05 20.28c-.98.95-2.05.88-3.08.4-.68-.32-1.39-.32-2.08 0-1.03.48-2.1.55-3.07-.4-4.15-4.08-3.5-11.2 1.48-11.45 1.25-.06 2.14.65 2.82.63.78-.02 2.14-0.89 3.6-0.65 1.53.25 2.68 1.01 3.42 2.12-2.95 1.83-2.45 6.09.52 7.37-.66 1.34-1.54 2.66-2.61 3.73v.25ZM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.17 2.37-1.92 4.22-3.74 4.25Z"></path>
+</svg>
+                    Apple
+                </button>
+</div>
+<div class="mt-10 mb-2 text-center">
+<p class="text-slate-400 text-sm">
+                    Already have an account? 
+                    <a class="text-primary font-bold hover:text-blue-400 transition-colors ml-1" href="#">Log In</a>
+</p>
+</div>
+</div>
+</div>
+
+</body></html>

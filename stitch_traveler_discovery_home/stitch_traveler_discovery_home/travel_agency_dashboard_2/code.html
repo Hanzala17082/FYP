@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Tripster Agency Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;family=Noto+Sans:wght@400;500;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#38bdf8", // Slightly lighter Sky Blue for better dark mode contrast
+                        "primary-dark": "#0ea5e9",
+                        "background-light": "#f6f7f8",
+                        "background-dark": "#0B1118", // Deep, rich dark background
+                        "card-dark": "#161e29", // Slightly lighter than background for cards
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"],
+                        "body": ["Noto Sans", "sans-serif"],
+                    },
+                    borderRadius: {"DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+            -webkit-font-smoothing: antialiased;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display overflow-x-hidden pb-24 transition-colors duration-300">
+<header class="sticky top-0 z-20 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-xl border-b border-slate-200 dark:border-slate-800">
+<div class="flex items-center px-5 py-4 justify-between">
+<div class="flex flex-col">
+<span class="text-slate-500 dark:text-slate-400 text-xs font-bold uppercase tracking-wider mb-1">Agency Dashboard</span>
+<h2 class="text-slate-900 dark:text-white text-2xl font-extrabold leading-tight tracking-tight flex items-center gap-1">
+                    Tripster<span class="text-primary">.</span>
+</h2>
+</div>
+<div class="flex items-center justify-end">
+<button class="relative flex items-center justify-center w-10 h-10 rounded-full bg-white dark:bg-card-dark shadow-sm border border-slate-200 dark:border-slate-700 text-slate-900 dark:text-white hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">
+<span class="material-symbols-outlined text-[24px]">notifications</span>
+<span class="absolute top-2 right-2.5 w-2 h-2 bg-red-500 rounded-full ring-2 ring-white dark:ring-card-dark"></span>
+</button>
+</div>
+</div>
+</header>
+<main class="flex flex-col w-full">
+<section class="px-5 py-6">
+<div class="grid grid-cols-2 gap-4">
+<div class="col-span-2 flex flex-col gap-3 rounded-xl p-5 bg-white dark:bg-card-dark shadow-sm border border-slate-200 dark:border-slate-800">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2 text-slate-500 dark:text-slate-400">
+<span class="material-symbols-outlined text-[20px]">payments</span>
+<p class="text-sm font-medium">Total Revenue</p>
+</div>
+<span class="inline-flex items-center gap-1 rounded-full bg-emerald-50 dark:bg-emerald-500/10 px-2 py-1 text-xs font-semibold text-emerald-700 dark:text-emerald-400 border border-transparent dark:border-emerald-500/20">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+                            +12%
+                        </span>
+</div>
+<p class="text-slate-900 dark:text-white tracking-tight text-3xl font-extrabold">$124,500</p>
+<p class="text-slate-400 dark:text-slate-500 text-xs font-medium">vs. last month</p>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-5 bg-white dark:bg-card-dark shadow-sm border border-slate-200 dark:border-slate-800">
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Bookings</p>
+<p class="text-slate-900 dark:text-white tracking-tight text-2xl font-bold">84</p>
+<p class="text-emerald-600 dark:text-emerald-400 text-xs font-medium leading-normal flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">arrow_upward</span> 5%
+                    </p>
+</div>
+<div class="flex flex-col gap-2 rounded-xl p-5 bg-white dark:bg-card-dark shadow-sm border border-slate-200 dark:border-slate-800">
+<p class="text-slate-500 dark:text-slate-400 text-sm font-medium">Active Trips</p>
+<p class="text-slate-900 dark:text-white tracking-tight text-2xl font-bold">12</p>
+<p class="text-slate-400 dark:text-slate-500 text-xs font-medium leading-normal flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">remove</span> 0%
+                    </p>
+</div>
+</div>
+</section>
+<section class="px-5 pb-6">
+<button class="flex w-full cursor-pointer items-center justify-center overflow-hidden rounded-xl h-14 px-5 bg-primary hover:bg-primary-dark transition-colors text-slate-900 dark:text-white gap-2 text-base font-bold shadow-lg shadow-sky-500/20 dark:shadow-sky-900/40 active:scale-[0.98] transform duration-100">
+<span class="material-symbols-outlined text-[24px]">add_circle</span>
+<span>Post New Trip</span>
+</button>
+</section>
+<section class="flex flex-col">
+<div class="flex items-center justify-between px-5 pb-3">
+<h3 class="text-slate-900 dark:text-white text-lg font-bold leading-tight tracking-tight">Recent Requests</h3>
+<a class="text-primary text-sm font-semibold hover:text-primary-dark transition-colors" href="#">View All</a>
+</div>
+<div class="flex flex-col gap-px bg-slate-100 dark:bg-slate-800 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-800">
+<div class="flex items-center gap-4 bg-white dark:bg-card-dark px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer group">
+<div class="shrink-0 relative">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-12 w-12" data-alt="Portrait of Sarah Jenkins smiling" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDhCf_efRLPO2bQY0ZveeU6AMPr1d4FAfhALp7SU9CMjkhxHa6DVOh59KJSZS_msTrjRef96S0OCAUNIkBAhFV3UBTxUzwcSrNQcgo2hIz0-aDXG0I5vEqsni87c-lleXZsOWP-BUuaOpRzYCCnYzf2g8yNiHljxNz7eu5TjL9JNfMHFipaxGOONzg1oXGFMb6MtwNktsKuzDQptcaWJ1DPE_uPsp1AgpCnzCcrdfXYniovXGDWs48x5-P1dNKCBFRObZCcbCZuET0");'></div>
+<div class="absolute -bottom-1 -right-1 bg-white dark:bg-card-dark rounded-full p-0.5">
+<div class="bg-yellow-400 h-3 w-3 rounded-full border-2 border-white dark:border-card-dark"></div>
+</div>
+</div>
+<div class="flex flex-col flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<p class="text-slate-900 dark:text-slate-100 text-base font-semibold leading-normal truncate group-hover:text-primary transition-colors">Sarah Jenkins</p>
+<span class="text-xs text-slate-400 dark:text-slate-500 font-medium">2h ago</span>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal truncate">Bali Retreat • Oct 12-19</p>
+</div>
+<div class="shrink-0">
+<div class="flex items-center justify-center rounded-lg px-2.5 py-1 bg-yellow-100 dark:bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 text-xs font-bold uppercase tracking-wider border border-transparent dark:border-yellow-500/20">
+                                Pending
+                            </div>
+</div>
+</div>
+<div class="flex items-center gap-4 bg-white dark:bg-card-dark px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer group">
+<div class="shrink-0 relative">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-12 w-12" data-alt="Company logo for Tech Corp" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuBzUsDXs7q9xlpRA5MQqiQ2l7826rinDU44Mrntu0P9mfbCY8ULA5qLYOlNHtKweEyQPBR35czzP2S3C7zcCmwhJ5KZAea43ZUUwOIcGGQ3vO8Bbjx69-7SrY8AJOA8aHxKsAyGVainntUTpd0pZQw1u6GWqg9XwNyIo6axrB35iW9Xqn1fwK459d4gKM6uRoklapacCDyusQGR-pIveDQon59K-I2JFLdHt5YOva_G7uqh2TlZN7o8rcyPe7m5eOxJvn4Os8Xy4fI");'></div>
+<div class="absolute -bottom-1 -right-1 bg-white dark:bg-card-dark rounded-full p-0.5">
+<div class="bg-emerald-500 h-3 w-3 rounded-full border-2 border-white dark:border-card-dark"></div>
+</div>
+</div>
+<div class="flex flex-col flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<p class="text-slate-900 dark:text-slate-100 text-base font-semibold leading-normal truncate group-hover:text-primary transition-colors">Tech Corp</p>
+<span class="text-xs text-slate-400 dark:text-slate-500 font-medium">1d ago</span>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal truncate">NYC Conference • Nov 02-05</p>
+</div>
+<div class="shrink-0">
+<div class="flex items-center justify-center rounded-lg px-2.5 py-1 bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 text-xs font-bold uppercase tracking-wider border border-transparent dark:border-emerald-500/20">
+                                Confirmed
+                            </div>
+</div>
+</div>
+<div class="flex items-center gap-4 bg-white dark:bg-card-dark px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer group">
+<div class="shrink-0 relative">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-12 w-12" data-alt="Portrait of John Doe hiking" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuATYwzdYgoDurSA5EH6Pm04tANR6UPaa_aOVipElVmXyAgkCf4DF_fqxYhWUDLfFqdHsn07JHCSqpSb2DqcLvzruuNL_hoxCxAvaeFAndRVP789U07vC7mviQ96GGOxeT2p5S_Kx1XeheYnsHormkDpxC4zHE--WfkLa2Vnbl2GkbT5BaU5azS1ZivjD0wBZtLu_JJ6_6FXL_eUm5MxaBtUoKFXdTZqYby-hETTYruaCb6FX7sGTP2NiDoBk4n78yA4JmkLrpLS3PE");'></div>
+</div>
+<div class="flex flex-col flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<p class="text-slate-900 dark:text-slate-100 text-base font-semibold leading-normal truncate group-hover:text-primary transition-colors">John Doe</p>
+<span class="text-xs text-slate-400 dark:text-slate-500 font-medium">2d ago</span>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal truncate">Alps Skiing • Dec 10-17</p>
+</div>
+<div class="shrink-0">
+<div class="flex items-center justify-center rounded-lg px-2.5 py-1 bg-slate-100 dark:bg-slate-700/30 text-slate-600 dark:text-slate-400 text-xs font-bold uppercase tracking-wider border border-transparent dark:border-slate-700/50">
+                                Reviewing
+                            </div>
+</div>
+</div>
+<div class="flex items-center gap-4 bg-white dark:bg-card-dark px-5 py-4 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer group">
+<div class="shrink-0 relative">
+<div class="bg-center bg-no-repeat aspect-square bg-cover rounded-full h-12 w-12 bg-slate-200 dark:bg-slate-700" data-alt="Abstract generic user avatar gradient" style="background: linear-gradient(135deg, #a5b4fc, #818cf8);"></div>
+</div>
+<div class="flex flex-col flex-1 min-w-0">
+<div class="flex justify-between items-start">
+<p class="text-slate-900 dark:text-slate-100 text-base font-semibold leading-normal truncate group-hover:text-primary transition-colors">Alice Wanderlust</p>
+<span class="text-xs text-slate-400 dark:text-slate-500 font-medium">3d ago</span>
+</div>
+<p class="text-slate-500 dark:text-slate-400 text-sm font-normal leading-normal truncate">Kyoto Cherry Blossom • Mar 20-27</p>
+</div>
+<div class="shrink-0">
+<div class="flex items-center justify-center rounded-lg px-2.5 py-1 bg-slate-100 dark:bg-slate-700/30 text-slate-600 dark:text-slate-400 text-xs font-bold uppercase tracking-wider border border-transparent dark:border-slate-700/50">
+                                Reviewing
+                            </div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<nav class="fixed bottom-0 left-0 right-0 bg-white dark:bg-background-dark/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 z-50 pb-safe pt-2 px-6 h-[84px]">
+<div class="flex items-start justify-between h-full">
+<button class="flex flex-col items-center gap-1 w-16 group">
+<span class="material-symbols-outlined text-primary text-[26px] group-hover:scale-110 transition-transform">dashboard</span>
+<span class="text-xs font-bold text-primary">Home</span>
+</button>
+<button class="flex flex-col items-center gap-1 w-16 group">
+<span class="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[26px] group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">analytics</span>
+<span class="text-xs font-medium text-slate-500 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300">Analytics</span>
+</button>
+<div class="relative -top-6">
+<button class="flex items-center justify-center w-14 h-14 rounded-full bg-primary shadow-lg shadow-sky-500/30 dark:shadow-sky-900/50 text-white hover:bg-primary-dark transition-colors ring-4 ring-white dark:ring-background-dark">
+<span class="material-symbols-outlined text-[28px]">flight</span>
+</button>
+<div class="absolute -bottom-5 w-full text-center">
+<span class="text-xs font-medium text-slate-500 dark:text-slate-400">Trips</span>
+</div>
+</div>
+<button class="flex flex-col items-center gap-1 w-16 group">
+<span class="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[26px] group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">chat_bubble</span>
+<span class="text-xs font-medium text-slate-500 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300">Messages</span>
+</button>
+<button class="flex flex-col items-center gap-1 w-16 group">
+<span class="material-symbols-outlined text-slate-400 dark:text-slate-500 text-[26px] group-hover:text-slate-600 dark:group-hover:text-slate-300 transition-colors">person</span>
+<span class="text-xs font-medium text-slate-500 dark:text-slate-500 group-hover:text-slate-700 dark:group-hover:text-slate-300">Profile</span>
+</button>
+</div>
+</nav>
+<div class="h-24"></div>
+
+</body></html>
