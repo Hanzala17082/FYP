@@ -57,7 +57,18 @@ export default function AgencyProfilePageClient() {
     )
   }
 
-  if (!isAuthenticated || !user || user.role !== USER_ROLES.AGENCY) return null
+  if (!isAuthenticated || !user || user.role !== USER_ROLES.AGENCY) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark p-6">
+        <div className="text-center max-w-md">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">Access Denied</h1>
+          <p className="text-slate-600 dark:text-slate-400">
+            You don&apos;t have permission to view this page.
+          </p>
+        </div>
+      </div>
+    )
+  }
 
   if (!agencyId) {
     return (

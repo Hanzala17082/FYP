@@ -10,8 +10,8 @@ export const ROUTES = {
   TRIPS: '/trips',
   AGENCIES: '/agencies',
   DASHBOARD: {
-    TRAVELER: '/traveler/dashboard',
-    AGENCY: '/agency/dashboard',
+    TRAVELER: '/dashboard',
+    AGENCY: '/dashboard',
     ADMIN: '/admin/dashboard',
   },
 } as const

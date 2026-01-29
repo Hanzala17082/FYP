@@ -43,8 +43,8 @@ export function middleware(request: NextRequest) {
     if (userRole !== 'Admin') {
       // Redirect based on role or to login
       const redirectUrl = new URL(
-        userRole === 'Agency' ? '/agency/dashboard' : 
-        userRole === 'Traveler' ? '/traveler/dashboard' : 
+        userRole === 'Agency' ? '/dashboard' : 
+        userRole === 'Traveler' ? '/dashboard' : 
         '/login',
         request.url
       )
@@ -57,7 +57,7 @@ export function middleware(request: NextRequest) {
     if (userRole !== 'Agency') {
       const redirectUrl = new URL(
         userRole === 'Admin' ? '/admin/dashboard' : 
-        userRole === 'Traveler' ? '/traveler/dashboard' : 
+        userRole === 'Traveler' ? '/dashboard' : 
         '/login',
         request.url
       )
@@ -70,7 +70,7 @@ export function middleware(request: NextRequest) {
     if (userRole !== 'Traveler') {
       const redirectUrl = new URL(
         userRole === 'Admin' ? '/admin/dashboard' : 
-        userRole === 'Agency' ? '/agency/dashboard' : 
+        userRole === 'Agency' ? '/dashboard' : 
         '/login',
         request.url
       )

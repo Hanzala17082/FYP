@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { TripCard } from '@/shared/components/ui'
@@ -11,6 +11,7 @@ import { LogoutButton } from '@/shared/components/auth/LogoutButton'
 import { BackButton, NavButton } from '@/shared/components/navigation'
 import { useAuth } from '@/shared/contexts/AuthContext'
 import { ROUTES, USER_ROLES } from '@/config/constants'
+import { getAllTrips } from '@/data/dummyTrips'
 
 export default function TripListingsClient() {
   const [searchQuery, setSearchQuery] = useState('')
@@ -20,59 +21,35 @@ export default function TripListingsClient() {
   // Ensure user role is valid and matches expected values
   const userRole = user?.role && ['Traveler', 'Agency', 'Admin'].includes(user.role) ? user.role : null
 
-  // Mock data - will be replaced with API call
-  const trips = [
-    {
-      id: '1',
-      title: 'Tech Conference 2024 - San Francisco',
-      agency: { name: 'Global Corp Travel', verified: true },
-      startDate: 'Oct 12',
-      endDate: 'Oct 16',
-      duration: 4,
-      price: 1250,
-      image:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuB976Fq05Wg6VqoNWnn0h7n3_L8fLph0yDJCZcPrJfVi5OftNdiZOqeaQBXGVHAObFO9sOjwAP_yY0EQ0HM2voe6S3TP2sSIW_v1824MIAv1QIqcuJXKduZcCg_Lo9HOUD9nLYxEyaou3_UGbMiGyCz5MXKhr9n5F449USjn1oXR48hAmWwNW8vshZDi54Hs1Eh93syd4cD3iH7ywKV805SVUsImkuDTKpAqzjNvZ1Zc1D3nKQYv3QwFxhY3RhWfLszUsOija17vyY',
-      images: [
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuB976Fq05Wg6VqoNWnn0h7n3_L8fLph0yDJCZcPrJfVi5OftNdiZOqeaQBXGVHAObFO9sOjwAP_yY0EQ0HM2voe6S3TP2sSIW_v1824MIAv1QIqcuJXKduZcCg_Lo9HOUD9nLYxEyaou3_UGbMiGyCz5MXKhr9n5F449USjn1oXR48hAmWwNW8vshZDi54Hs1Eh93syd4cD3iH7ywKV805SVUsImkuDTKpAqzjNvZ1Zc1D3nKQYv3QwFxhY3RhWfLszUsOija17vyY',
-        'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?auto=format&fit=crop&w=1400&q=80',
-        'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?auto=format&fit=crop&w=1400&q=80',
-      ],
-      badge: { text: 'Company Approved', status: 'approved' as const },
-    },
-    {
-      id: '2',
-      title: 'Team Retreat - Bali',
-      agency: { name: 'Zenith Experiences', verified: true },
-      startDate: 'Nov 01',
-      endDate: 'Nov 08',
-      duration: 7,
-      price: 2100,
-      image:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuBOMq-Qvj6UPiHUEMmuhkqCsaLoR2Am8FTkRSgnHfeCrqi_v1H8ABo1aeDiwEGHd3EL2hMhXI79Vq560zcY17r3uCy5936HGN_aE_xPXjetT2kyNFxUELESK5dNqi_Bso-EundsfiRAgXtiTnDz_jGj8Gmbq-_at-wO4cxbHFI_dqe7lltcpZ_LdQD4h3NNrCuYU3w5jhJF5ktHloAJVw-OqsQ1RfzfSly34iGRKVK4_ROuBEw-a_a81PCGpyTbYamSzxqqws6s75c',
-      images: [
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuBOMq-Qvj6UPiHUEMmuhkqCsaLoR2Am8FTkRSgnHfeCrqi_v1H8ABo1aeDiwEGHd3EL2hMhXI79Vq560zcY17r3uCy5936HGN_aE_xPXjetT2kyNFxUELESK5dNqi_Bso-EundsfiRAgXtiTnDz_jGj8Gmbq-_at-wO4cxbHFI_dqe7lltcpZ_LdQD4h3NNrCuYU3w5jhJF5ktHloAJVw-OqsQ1RfzfSly34iGRKVK4_ROuBEw-a_a81PCGpyTbYamSzxqqws6s75c',
-        'https://images.unsplash.com/photo-1537996194471-e657df975ab4?auto=format&fit=crop&w=1400&q=80',
-        'https://images.unsplash.com/photo-1500375592092-40eb2168fd21?auto=format&fit=crop&w=1400&q=80',
-      ],
-      badge: { text: 'Trending', status: 'trending' as const },
-    },
-    {
-      id: '3',
-      title: 'Financial Summit - London',
-      agency: { name: 'EuroExec Travel', verified: true },
-      startDate: 'Dec 05',
-      endDate: 'Dec 08',
-      duration: 3,
-      price: 950,
-      image:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuA_QlhZhBz5YC9ZcxTT4Mr_-n_DfGBQGs8f8DYElLF48g0aBx5jGBszWimY-BWbtBnpH_oPRIYXoqL94jdRFk7K13Vz4h2MWEEAXBDp6jE7skW_m0D5w-0MtvekdiuFFgjh_p4OpSJyjWG1lAkmCmr5YmrYbwT3xyVntx8W6oP6Zm6Gr4M-u8rOGVTz-FycH4lsXgMVxqmTfsLur6_BKhgBAnrhmnVZybN_bKsr-Gl_AP-4ehx6_uq2eyEm-TboVRTH23PXxGdb45w',
-      images: [
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuA_QlhZhBz5YC9ZcxTT4Mr_-n_DfGBQGs8f8DYElLF48g0aBx5jGBszWimY-BWbtBnpH_oPRIYXoqL94jdRFk7K13Vz4h2MWEEAXBDp6jE7skW_m0D5w-0MtvekdiuFFgjh_p4OpSJyjWG1lAkmCmr5YmrYbwT3xyVntx8W6oP6Zm6Gr4M-u8rOGVTz-FycH4lsXgMVxqmTfsLur6_BKhgBAnrhmnVZybN_bKsr-Gl_AP-4ehx6_uq2eyEm-TboVRTH23PXxGdb45w',
-        'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=1400&q=80',
-        'https://images.unsplash.com/photo-1469474968028-56623f02e42e?auto=format&fit=crop&w=1400&q=80',
-      ],
-    },
-  ]
+  const storageKey = user ? `wishlist:${user.id}` : null
+  const [wishlist, setWishlist] = useState<string[]>([])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (!storageKey) return
+    const raw = window.localStorage.getItem(storageKey)
+    if (raw) {
+      try {
+        setWishlist(JSON.parse(raw))
+      } catch {
+        setWishlist([])
+      }
+    } else {
+      setWishlist([])
+    }
+  }, [storageKey])
+
+  const toggleWishlist = (slug: string) => {
+    if (typeof window === 'undefined') return
+    if (!storageKey) return
+    setWishlist((prev) => {
+      const next = prev.includes(slug) ? prev.filter((x) => x !== slug) : [...prev, slug]
+      window.localStorage.setItem(storageKey, JSON.stringify(next))
+      return next
+    })
+  }
+
+  const trips = useMemo(() => getAllTrips(), [])
 
   return (
     <div className="relative flex h-full min-h-screen w-full flex-col overflow-x-hidden pb-24 md:pb-8 bg-background-light dark:bg-background-dark text-slate-900 dark:text-white">
@@ -85,22 +62,44 @@ export default function TripListingsClient() {
           rightAction={
             <div className="flex items-center gap-2">
               {!isLoading && isAuthenticated && userRole === USER_ROLES.AGENCY && (
-                <BackButton
-                  href={ROUTES.DASHBOARD.AGENCY}
-                  label="Back to Dashboard"
-                  validateRole={true}
-                  expectedRole="Agency"
-                />
+                <>
+                  <NavButton
+                    href={ROUTES.DASHBOARD.AGENCY}
+                    label="Dashboard"
+                    icon="dashboard"
+                    variant="default"
+                    validateRole={true}
+                    expectedRole="Agency"
+                  />
+                  <NavButton
+                    href="/profile"
+                    label="Profile"
+                    icon="person"
+                    variant="default"
+                    validateRole={true}
+                    expectedRole="Agency"
+                  />
+                </>
               )}
               {!isLoading && isAuthenticated && userRole === USER_ROLES.TRAVELER && (
-                <NavButton
-                  href={ROUTES.DASHBOARD.TRAVELER}
-                  label="Dashboard"
-                  icon="dashboard"
-                  variant="default"
-                  validateRole={true}
-                  expectedRole="Traveler"
-                />
+                <>
+                  <NavButton
+                    href={ROUTES.DASHBOARD.TRAVELER}
+                    label="Dashboard"
+                    icon="dashboard"
+                    variant="default"
+                    validateRole={true}
+                    expectedRole="Traveler"
+                  />
+                  <NavButton
+                    href={user ? `/travelers/${user.id}` : '/profile'}
+                    label="Profile"
+                    icon="person"
+                    variant="default"
+                    validateRole={true}
+                    expectedRole="Traveler"
+                  />
+                </>
               )}
               <ThemeToggle />
               {!isLoading && isAuthenticated && userRole && (
@@ -146,16 +145,21 @@ export default function TripListingsClient() {
           {trips.map((trip) => (
             <TripCard
               key={trip.id}
-              id={trip.id}
+              id={trip.slug}
               title={trip.title}
-              agency={trip.agency}
+              agency={{ name: trip.agency.name, verified: trip.agency.verified }}
               startDate={trip.startDate}
               endDate={trip.endDate}
               duration={trip.duration}
               price={trip.price}
-              image={trip.image}
+              image={trip.images?.[0] || ''}
               images={trip.images}
-              badge={trip.badge}
+              badge={trip.status ? { text: trip.status, status: (trip.status as any) } : undefined}
+              wishlistAction={
+                !isLoading && isAuthenticated && userRole === USER_ROLES.TRAVELER && user
+                  ? { active: wishlist.includes(trip.slug), onToggle: () => toggleWishlist(trip.slug) }
+                  : undefined
+              }
             />
           ))}
         </div>
@@ -165,10 +169,16 @@ export default function TripListingsClient() {
       <BottomNavigation
         items={[
           { href: '/trips', icon: 'explore', label: 'Explore' },
-          ...(isAuthenticated && user?.role === 'Traveler'
-            ? [{ href: ROUTES.DASHBOARD.TRAVELER, icon: 'dashboard', label: 'Dashboard' }]
-            : []),
-          { href: '/profile', icon: 'person', label: 'Profile' },
+          ...(!isLoading && isAuthenticated && userRole === USER_ROLES.TRAVELER
+            ? [
+                { href: ROUTES.DASHBOARD.TRAVELER, icon: 'dashboard', label: 'Dashboard' },
+                { href: user ? `/travelers/${user.id}` : '/profile', icon: 'person', label: 'Profile' },
+              ]
+            : !isLoading && isAuthenticated && userRole === USER_ROLES.AGENCY
+              ? [{ href: ROUTES.DASHBOARD.AGENCY, icon: 'dashboard', label: 'Dashboard' }]
+              : !isLoading && isAuthenticated && userRole === USER_ROLES.ADMIN
+                ? [{ href: ROUTES.DASHBOARD.ADMIN, icon: 'dashboard', label: 'Dashboard' }]
+                : [{ href: ROUTES.LOGIN, icon: 'login', label: 'Login' }]),
         ]}
         variant="default"
       />

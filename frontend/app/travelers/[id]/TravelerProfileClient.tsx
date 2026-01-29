@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/shared/components/layout'
 import {
@@ -8,11 +9,13 @@ import {
   ThemeToggle,
   SectionHeader,
   Button,
+  StatusBadge,
 } from '@/shared/components/ui'
 import { BackButton } from '@/shared/components/navigation'
 import { getTravelerProfileById } from '@/data/dummyTravelers'
 import { useAuth } from '@/shared/contexts/AuthContext'
-import { USER_ROLES } from '@/config/constants'
+import { getTravelerBookingsByTravelerId } from '@/data/dummyBookings'
+import { getTripById } from '@/data/dummyTrips'
 
 interface TravelerProfileClientProps {
   travelerId: string
@@ -22,11 +25,11 @@ export default function TravelerProfileClient({ travelerId }: TravelerProfileCli
   const router = useRouter()
   const { user: currentUser } = useAuth()
   const profile = getTravelerProfileById(travelerId)
+  const isOwner = !!currentUser && currentUser.id === travelerId
 
-  // Only allow Agency and Admin users to view traveler profiles
-  const canView =
-    currentUser &&
-    (currentUser.role === USER_ROLES.AGENCY || currentUser.role === USER_ROLES.ADMIN)
+  // localStorage-backed photos per traveler+trip (owner can add)
+  const storageKeyPrefix = `travelerTripPhotos:${travelerId}:`
+  const [tripPhotos, setTripPhotos] = useState<Record<string, string[]>>({})
 
   if (!profile) {
     return (
@@ -44,21 +47,39 @@ export default function TravelerProfileClient({ travelerId }: TravelerProfileCli
     )
   }
 
-  if (!canView) {
-    return (
-      <div className="bg-background-light dark:bg-background-dark min-h-screen p-5">
-        <Header title="Access Denied" variant="light" showThemeToggle={false} rightAction={<ThemeToggle />} />
-        <RoundedBox padding="lg" className="text-center py-12 mt-6">
-          <p className="text-slate-600 dark:text-slate-400">
-            You don&apos;t have permission to view this profile.
-          </p>
-          <Button variant="outline" className="mt-4" onClick={() => router.back()}>
-            Go Back
-          </Button>
-        </RoundedBox>
-      </div>
-    )
-  }
+  // Load saved trip photos from localStorage
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const bookings = getTravelerBookingsByTravelerId(travelerId)
+    const next: Record<string, string[]> = {}
+    for (const b of bookings) {
+      const raw = window.localStorage.getItem(`${storageKeyPrefix}${b.tripId}`)
+      if (raw) {
+        try {
+          next[b.tripId] = JSON.parse(raw)
+        } catch {
+          // ignore
+        }
+      }
+    }
+    setTripPhotos(next)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [travelerId])
+
+  const pastConfirmedTrips = useMemo(() => {
+    const now = new Date()
+    const bookings = getTravelerBookingsByTravelerId(travelerId).filter((b) => b.status === 'confirmed')
+    const trips = bookings
+      .map((b) => ({ booking: b, trip: getTripById(b.tripId) }))
+      .filter((x): x is { booking: typeof bookings[number]; trip: NonNullable<ReturnType<typeof getTripById>> } => !!x.trip)
+      // Only PAST trips (privacy: never show upcoming)
+      .filter(({ trip }) => {
+        const end = new Date(trip.endDate)
+        return !Number.isNaN(end.getTime()) && end.getTime() < now.getTime()
+      })
+      .sort((a, b) => new Date(b.trip.endDate).getTime() - new Date(a.trip.endDate).getTime())
+    return trips
+  }, [travelerId])
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-24">
@@ -94,9 +115,9 @@ export default function TravelerProfileClient({ travelerId }: TravelerProfileCli
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
                 <div>
                   <p className="text-lg font-bold text-slate-900 dark:text-white">
-                    {profile.stats.totalTrips}
+                    {pastConfirmedTrips.length}
                   </p>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">Total Trips</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">Trips Completed</p>
                 </div>
                 <div>
                   <p className="text-lg font-bold text-slate-900 dark:text-white">
@@ -115,114 +136,126 @@ export default function TravelerProfileClient({ travelerId }: TravelerProfileCli
           </div>
         </RoundedBox>
 
-        {/* Preferences */}
-        <RoundedBox variant="default" padding="lg">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Travel Preferences</h2>
-          <div className="space-y-4">
+        {/* Past Trips (privacy-safe) */}
+        <RoundedBox variant="default" padding="lg" className="space-y-4">
+          <div className="flex items-center justify-between gap-3">
             <div>
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">
-                Preferred Destinations
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Past Trips</h2>
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                Only completed trips are shown. Upcoming trips are hidden for privacy.
               </p>
-              <div className="flex flex-wrap gap-2">
-                {profile.preferences.destinations.map((dest, idx) => (
-                  <span
-                    key={idx}
-                    className="px-3 py-1 bg-primary/10 dark:bg-primary/20 text-primary text-xs font-medium rounded-full"
-                  >
-                    {dest}
-                  </span>
-                ))}
-              </div>
             </div>
-            <div>
-              <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Trip Types</p>
-              <div className="flex flex-wrap gap-2">
-                {profile.preferences.tripTypes.map((type, idx) => (
-                  <span
-                    key={idx}
-                    className="px-3 py-1 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 text-xs font-medium rounded-lg"
-                  >
-                    {type}
-                  </span>
-                ))}
-              </div>
-            </div>
-            {profile.preferences.budgetRange && (
-              <div>
-                <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Budget Range</p>
-                <p className="text-slate-600 dark:text-slate-400">
-                  ${profile.preferences.budgetRange.min.toLocaleString()} - $
-                  {profile.preferences.budgetRange.max.toLocaleString()}
-                </p>
-              </div>
-            )}
           </div>
+
+          {pastConfirmedTrips.length === 0 ? (
+            <div className="text-sm text-slate-600 dark:text-slate-400">
+              No completed trips to display yet.
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {pastConfirmedTrips.map(({ trip }) => {
+                const userPics = tripPhotos[trip.id] || []
+                const cover = userPics[0] || trip.images?.[0]
+                return (
+                  <div key={trip.id} className="border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden">
+                    <div className="flex flex-col md:flex-row">
+                      <div className="relative md:w-64 w-full h-44 bg-slate-100 dark:bg-slate-800">
+                        {cover ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={cover} alt={trip.title} className="w-full h-full object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-slate-400">
+                            <span className="material-symbols-outlined text-4xl">photo</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 p-4 flex flex-col gap-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="text-slate-900 dark:text-white font-semibold truncate">{trip.title}</p>
+                            <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
+                              {trip.destination} • {trip.startDate} – {trip.endDate}
+                            </p>
+                          </div>
+                          <StatusBadge status="completed" size="md" />
+                        </div>
+
+                        {userPics.length > 0 && (
+                          <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+                            {userPics.slice(0, 6).map((src, idx) => (
+                              <div key={idx} className="aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800">
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img src={src} alt={`Trip photo ${idx + 1}`} className="w-full h-full object-cover" />
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div className="flex items-center justify-between gap-2">
+                          <Button variant="outline" size="sm" onClick={() => router.push(`/trips/${trip.slug}`)}>
+                            <span className="material-symbols-outlined text-[18px]">visibility</span>
+                            View Trip
+                          </Button>
+
+                          {isOwner && (
+                            <div className="flex items-center gap-2">
+                              <input
+                                id={`upload-${trip.id}`}
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                className="hidden"
+                                onChange={(e) => {
+                                  const files = Array.from(e.target.files || [])
+                                  if (files.length === 0) return
+
+                                  files.forEach((file) => {
+                                    const reader = new FileReader()
+                                    reader.onloadend = () => {
+                                      const dataUrl = reader.result as string
+                                      setTripPhotos((prev) => {
+                                        const next = { ...prev, [trip.id]: [...(prev[trip.id] || []), dataUrl] }
+                                        try {
+                                          window.localStorage.setItem(
+                                            `${storageKeyPrefix}${trip.id}`,
+                                            JSON.stringify(next[trip.id])
+                                          )
+                                        } catch {
+                                          // ignore
+                                        }
+                                        return next
+                                      })
+                                    }
+                                    reader.readAsDataURL(file)
+                                  })
+                                }}
+                              />
+                              <label
+                                htmlFor={`upload-${trip.id}`}
+                                className="inline-flex items-center gap-2 h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer text-sm font-semibold"
+                              >
+                                <span className="material-symbols-outlined text-[18px]">add_photo_alternate</span>
+                                Add Photos
+                              </label>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
         </RoundedBox>
 
-        {/* Favorite Destinations */}
-        {profile.stats.favoriteDestinations.length > 0 && (
-          <RoundedBox variant="default" padding="lg">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-3">Favorite Destinations</h2>
-            <div className="flex flex-wrap gap-2">
-              {profile.stats.favoriteDestinations.map((dest, idx) => (
-                <span
-                  key={idx}
-                  className="px-3 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-sm font-medium rounded-lg"
-                >
-                  {dest}
-                </span>
-              ))}
-            </div>
-          </RoundedBox>
-        )}
-
-        {/* Social Links */}
-        {profile.socialLinks && (
-          <RoundedBox variant="default" padding="lg">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-3">Social Links</h2>
-            <div className="space-y-2">
-              {profile.socialLinks.website && (
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">language</span>
-                  <a
-                    href={profile.socialLinks.website}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-primary hover:underline"
-                  >
-                    {profile.socialLinks.website}
-                  </a>
-                </div>
-              )}
-              {profile.socialLinks.instagram && (
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">photo_camera</span>
-                  <span className="text-slate-700 dark:text-slate-300">{profile.socialLinks.instagram}</span>
-                </div>
-              )}
-              {profile.socialLinks.twitter && (
-                <div className="flex items-center gap-3">
-                  <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">chat</span>
-                  <span className="text-slate-700 dark:text-slate-300">{profile.socialLinks.twitter}</span>
-                </div>
-              )}
-            </div>
-          </RoundedBox>
-        )}
-
-        {/* Contact Info */}
+        {/* Privacy note (no email / no upcoming trips) */}
         <RoundedBox variant="default" padding="lg">
-          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-3">Contact Information</h2>
-          <div className="space-y-2">
-            <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">email</span>
-              <span className="text-slate-700 dark:text-slate-300">{profile.user.email}</span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">location_on</span>
-              <span className="text-slate-700 dark:text-slate-300">{profile.user.city}</span>
-            </div>
-          </div>
+          <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-2">Privacy</h2>
+          <p className="text-sm text-slate-600 dark:text-slate-400">
+            This public profile only shows completed trips and shared photos. Upcoming trips and private contact details
+            are not displayed.
+          </p>
         </RoundedBox>
 
       </div>

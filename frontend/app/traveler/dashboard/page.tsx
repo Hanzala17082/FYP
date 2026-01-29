@@ -1,17 +1,7 @@
-import { Metadata } from 'next'
-import TravelerDashboardClient from './TravelerDashboardClient'
-import { generateMetadata } from '@/shared/utils/seo'
-import { ProtectedRoute } from '@/shared/components/auth/ProtectedRoute'
-
-export const metadata: Metadata = generateMetadata({
-  title: 'Traveler Dashboard - Tripster',
-  description: 'Manage your trips, bookings, and travel preferences',
-})
+import { redirect } from 'next/navigation'
 
 export default function TravelerDashboardPage() {
-  return (
-    <ProtectedRoute allowedRoles={['Traveler']}>
-      <TravelerDashboardClient />
-    </ProtectedRoute>
-  )
+  // Traveler dashboard is now unified at /dashboard
+  // Keep this route as an alias so old links still work.
+  redirect('/dashboard')
 }

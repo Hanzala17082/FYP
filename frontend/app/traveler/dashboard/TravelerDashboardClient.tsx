@@ -81,32 +81,38 @@ export default function TravelerDashboardClient() {
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-background-light dark:bg-background-dark">
       <div className="max-w-7xl mx-auto w-full">
         <header className="flex flex-col gap-4 p-5 pb-2 md:p-8">
-        <div className="flex items-center justify-between">
-          <Link href={ROUTES.TRIPS} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <div className="flex items-center justify-center size-9 rounded-xl bg-primary text-white shadow-sm">
-              <span className="material-symbols-outlined text-[20px]">travel_explore</span>
+          <div className="flex items-center justify-between">
+            <Link href={ROUTES.TRIPS} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
+              <div className="flex items-center justify-center size-9 rounded-xl bg-primary text-white shadow-sm">
+                <span className="material-symbols-outlined text-[20px]">travel_explore</span>
+              </div>
+              <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+                Tripster
+              </span>
+            </Link>
+            <div className="flex items-center gap-2">
+              <NavButton
+                href={ROUTES.DASHBOARD.TRAVELER}
+                label="Dashboard"
+                icon="dashboard"
+                variant="default"
+              />
+              <NavButton
+                href={ROUTES.TRIPS}
+                label="Browse Trips"
+                icon="explore"
+                variant="default"
+              />
+              <ThemeToggle />
+              <IconButton
+                icon={<span className="material-symbols-outlined">notifications</span>}
+                variant="default"
+                size="md"
+                badge={true}
+              />
+              <LogoutButton />
             </div>
-            <span className="text-xl font-bold text-slate-900 dark:text-white tracking-tight">
-              Tripster
-            </span>
-          </Link>
-          <div className="flex items-center gap-2">
-            <NavButton
-              href={ROUTES.TRIPS}
-              label="Browse Trips"
-              icon="explore"
-              variant="default"
-            />
-            <ThemeToggle />
-            <IconButton
-              icon={<span className="material-symbols-outlined">notifications</span>}
-              variant="default"
-              size="md"
-              badge={true}
-            />
-            <LogoutButton />
           </div>
-        </div>
         <div className="flex items-center gap-3">
           <Avatar
             src="https://lh3.googleusercontent.com/aida-public/AB6AXuAtQvhVyGhF9vZ2gsk0k12yfZjV1oZtLzZ-UIRwC7O2kA_1CnL84yqN4ftXTib6f6aBfGO1OG7wLhddpC-l-wmrR_Tii_i_F9pcGhCN8mwO9RE95-e4aJ-PHyJmofmLaxf3ihyT0R7BU4nCj-lhB6p0g0kx-hno1eWq0yCT4LNRuKILXyFBKIWGhDM-B9FUuGE4_PfSLjFqlA_X9XHaz4UYKbONkatEm6R5uqz-YIda0WwyqPS-5KuUpewqj8m--XOBZEnQGTO0QDc"
@@ -223,6 +229,7 @@ export default function TravelerDashboardClient() {
           { href: '/traveler/dashboard', icon: 'home', label: 'Home' },
           { href: '/trips', icon: 'explore', label: 'Explore' },
           { href: '/profile', icon: 'person', label: 'Profile' },
+          { href: '/agencies', icon: 'business', label: 'Agencies' },
         ]}
         variant="default"
       />

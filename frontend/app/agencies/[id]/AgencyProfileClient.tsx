@@ -11,7 +11,9 @@ import {
 } from '@/shared/components/ui'
 import { TripReviewCard } from '@/shared/components/trips/TripReviewCard'
 import { TripCard } from '@/shared/components/ui'
-import { BackButton } from '@/shared/components/navigation'
+import { BackButton, NavButton } from '@/shared/components/navigation'
+import { useAuth } from '@/shared/contexts/AuthContext'
+import { ROUTES, USER_ROLES } from '@/config/constants'
 import { findAgencyById } from '@/data/dummyAgencies'
 import { getTripsByAgencyId } from '@/data/dummyTrips'
 import { cn } from '@/shared/utils/cn'
@@ -23,6 +25,7 @@ interface AgencyProfileClientProps {
 
 export default function AgencyProfileClient({ agencyId }: AgencyProfileClientProps) {
   const router = useRouter()
+  const { user, isAuthenticated, isLoading } = useAuth()
   const agency = findAgencyById(agencyId)
   const agencyTrips = getTripsByAgencyId(agencyId)
 
@@ -62,6 +65,30 @@ export default function AgencyProfileClient({ agencyId }: AgencyProfileClientPro
         showThemeToggle={false}
         rightAction={
           <div className="flex items-center gap-2">
+            {/* If logged in as this agency, show dashboard/profile actions */}
+            {!isLoading &&
+              isAuthenticated &&
+              user?.role === USER_ROLES.AGENCY &&
+              user.id === agency.id && (
+                <>
+                  <NavButton
+                    href={ROUTES.DASHBOARD.AGENCY}
+                    label="Dashboard"
+                    icon="dashboard"
+                    variant="default"
+                    validateRole={true}
+                    expectedRole="Agency"
+                  />
+                  <NavButton
+                    href="/agency/profile"
+                    label="Profile"
+                    icon="person"
+                    variant="default"
+                    validateRole={true}
+                    expectedRole="Agency"
+                  />
+                </>
+              )}
             <BackButton onClick={() => router.back()} label="Go Back" />
             <ThemeToggle />
           </div>

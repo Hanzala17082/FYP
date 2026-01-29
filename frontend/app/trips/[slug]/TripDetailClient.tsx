@@ -1,13 +1,15 @@
 'use client'
 
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 import { Header } from '@/shared/components/layout'
 import { Button, StatusBadge, Avatar, ThemeToggle, SectionHeader } from '@/shared/components/ui'
 import { RoundedBox } from '@/shared/components/ui'
 import { TripReviewCard } from '@/shared/components/trips/TripReviewCard'
 import { BackButton } from '@/shared/components/navigation'
 import { findAgencyById } from '@/data/dummyAgencies'
-import { ROUTES } from '@/config/constants'
+import { ROUTES, USER_ROLES } from '@/config/constants'
+import { useAuth } from '@/shared/contexts/AuthContext'
 import { cn } from '@/shared/utils/cn'
 
 interface TripDetailClientProps {
@@ -15,6 +17,9 @@ interface TripDetailClientProps {
 }
 
 export default function TripDetailClient({ slug }: TripDetailClientProps) {
+  const searchParams = useSearchParams()
+  const { user } = useAuth()
+  const fromDashboard = searchParams?.get('from') === 'dashboard'
   // Get agency data from dummy data
   const agency = findAgencyById('agency-1') // Using Global Travels Inc
   
@@ -149,6 +154,24 @@ export default function TripDetailClient({ slug }: TripDetailClientProps) {
     return <div>Agency not found</div>
   }
 
+  // Determine back button destination based on referrer and user role
+  const getBackButtonConfig = () => {
+    if (fromDashboard && user) {
+      // User came from dashboard, determine their dashboard URL
+      if (user.role === USER_ROLES.AGENCY) {
+        return { href: ROUTES.DASHBOARD.AGENCY, label: 'Back to Dashboard' }
+      } else if (user.role === USER_ROLES.TRAVELER) {
+        return { href: ROUTES.DASHBOARD.TRAVELER, label: 'Back to Dashboard' }
+      } else if (user.role === USER_ROLES.ADMIN) {
+        return { href: ROUTES.DASHBOARD.ADMIN, label: 'Back to Dashboard' }
+      }
+    }
+    // Default: back to trips listing
+    return { href: ROUTES.TRIPS, label: 'Back to Trips' }
+  }
+
+  const backButtonConfig = getBackButtonConfig()
+
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-24">
       <Header
@@ -157,7 +180,7 @@ export default function TripDetailClient({ slug }: TripDetailClientProps) {
         showThemeToggle={false}
         rightAction={
           <div className="flex items-center gap-2">
-            <BackButton href={ROUTES.TRIPS} label="Back to Trips" />
+            <BackButton href={backButtonConfig.href} label={backButtonConfig.label} />
             <ThemeToggle />
           </div>
         }

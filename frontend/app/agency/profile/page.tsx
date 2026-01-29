@@ -5,7 +5,7 @@ import AgencyProfilePageClient from './AgencyProfilePageClient'
 
 export const metadata: Metadata = generateMetadata({
   title: 'My Agency Profile - Tripster',
-  description: 'View the public agency profile as it appears to travelers',
+  description: 'View how your agency appears to travelers',
 })
 
 export default function AgencyProfilePage() {
@@ -15,4 +15,3 @@ export default function AgencyProfilePage() {
     </ProtectedRoute>
   )
 }
-

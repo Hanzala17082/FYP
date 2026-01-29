@@ -59,7 +59,7 @@ export function Header({
               {title && (
                 <h2
                   className={cn(
-                    'text-2xl font-extrabold leading-tight tracking-tight flex items-center gap-1',
+                    'text-2xl sm:text-3xl font-extrabold leading-tight tracking-tight flex items-center gap-1',
                     variant === 'light'
                       ? 'text-slate-900 dark:text-white'
                       : 'text-white'

@@ -4,6 +4,7 @@ import './globals.css'
 import { generateMetadata as genMeta } from '@/shared/utils/seo'
 import { ThemeProvider } from '@/shared/contexts/ThemeContext'
 import { AuthProvider } from '@/shared/contexts/AuthContext'
+import { ContentWrapper } from '@/shared/components/layout/ContentWrapper'
 
 const plusJakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -32,7 +33,9 @@ export default function RootLayout({
       </head>
       <body className={`${plusJakarta.variable} font-display antialiased`}>
         <ThemeProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <ContentWrapper>{children}</ContentWrapper>
+          </AuthProvider>
         </ThemeProvider>
       </body>
     </html>

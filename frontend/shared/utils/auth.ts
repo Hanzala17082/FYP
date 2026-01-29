@@ -33,12 +33,12 @@ export function getDashboardRoute(role: string): string {
 
 /**
  * Get the initial redirect route after login
- * Travelers go to trips page, others go to their dashboard
+ * Redirect users to their dashboard
  */
 export function getLoginRedirectRoute(role: string): string {
   switch (role) {
     case 'Traveler':
-      return ROUTES.TRIPS
+      return ROUTES.DASHBOARD.TRAVELER
     case 'Admin':
       return ROUTES.DASHBOARD.ADMIN
     case 'Agency':

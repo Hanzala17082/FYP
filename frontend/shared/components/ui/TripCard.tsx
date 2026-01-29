@@ -15,6 +15,7 @@ interface TripCardProps {
   image: string
   images?: string[]
   badge?: { text: string; status: 'pending' | 'confirmed' | 'trending' | 'approved' | 'active' | 'completed' | 'cancelled' }
+  wishlistAction?: { active: boolean; onToggle: () => void }
   className?: string
 }
 
@@ -29,6 +30,7 @@ export function TripCard({
   image,
   images,
   badge,
+  wishlistAction,
   className,
 }: TripCardProps) {
   // Safety check for agency
@@ -121,6 +123,26 @@ export function TripCard({
           <div className="absolute top-3 left-3 z-10">
             <StatusBadge status={badge.status} size="sm" />
           </div>
+        )}
+
+        {wishlistAction && (
+          <button
+            type="button"
+            aria-label={wishlistAction.active ? 'Remove from wishlist' : 'Add to wishlist'}
+            className={cn(
+              'absolute top-3 right-3 z-10 grid place-items-center w-10 h-10 rounded-full',
+              'bg-black/35 hover:bg-black/50 text-white backdrop-blur-sm transition-colors'
+            )}
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              wishlistAction.onToggle()
+            }}
+          >
+            <span className="material-symbols-outlined text-[22px]">
+              {wishlistAction.active ? 'favorite' : 'favorite_border'}
+            </span>
+          </button>
         )}
 
         {/* Carousel controls */}

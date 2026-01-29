@@ -104,6 +104,18 @@ export default function AdminDashboardClient() {
         showThemeToggle={false}
         rightAction={
           <div className="flex items-center gap-2">
+            <NavButton
+              href={ROUTES.DASHBOARD.ADMIN}
+              label="Dashboard"
+              icon="dashboard"
+              variant="default"
+            />
+            <NavButton
+              href="/profile"
+              label="Profile"
+              icon="person"
+              variant="default"
+            />
             <ThemeToggle />
             <LogoutButton />
           </div>
