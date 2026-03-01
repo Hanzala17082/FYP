@@ -2,8 +2,8 @@
 
 import { useState } from 'react'
 import { RoundedBox, Button, Input } from '../ui'
-import { CreateTripRequestDTO } from '@/types/api/trips.dto'
-import { createTrip } from '@/data/dummyTrips'
+import { CreateTripRequestDTO } from '@/types/api/trips.types'
+import { tripsService } from '@/services/trips.service'
 import { useAuth } from '@/shared/contexts/AuthContext'
 
 interface AddTripModalProps {
@@ -51,8 +51,7 @@ export function AddTripModal({ isOpen, onClose, onSuccess }: AddTripModalProps) 
         return
       }
 
-      // Create trip
-      createTrip(user.id, formData as CreateTripRequestDTO)
+      await tripsService.createTrip(formData as CreateTripRequestDTO)
       onSuccess()
       onClose()
       // Reset form

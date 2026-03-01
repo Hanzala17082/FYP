@@ -10,9 +10,9 @@ export const metadata: Metadata = generateMetadata({
   description: 'Manage your personal information, wallet, complaints, and settings.',
 })
 
-export default function ProfilePage() {
+export default async function ProfilePage() {
   // /profile is now an alias to "Profile view" inside the unified /dashboard
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   const userRole = cookieStore.get('userRole')?.value
   
   if (userRole === 'Agency') {

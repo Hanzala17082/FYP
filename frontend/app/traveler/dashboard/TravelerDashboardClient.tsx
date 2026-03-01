@@ -1,12 +1,12 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Header, BottomNavigation } from '@/shared/components/layout'
 import {
   AlertBox,
   Avatar,
-  ActionButton,
   QuickActionGrid,
   SectionHeader,
   ImageCard,
@@ -19,63 +19,50 @@ import { ThemeToggle } from '@/shared/components/ui/ThemeToggle'
 import { LogoutButton } from '@/shared/components/auth/LogoutButton'
 import { NavButton } from '@/shared/components/navigation'
 import { ROUTES } from '@/config/constants'
+import { dashboardService } from '@/services/dashboard.service'
+import { useAuth } from '@/shared/contexts/AuthContext'
 
 export default function TravelerDashboardClient() {
   const router = useRouter()
-  
+  const { user } = useAuth()
+  const [upcomingBookings, setUpcomingBookings] = useState<Array<{ id: string; destination: string; image: string; dates: string; status: string; type: string }>>([])
+  const [pastBookings, setPastBookings] = useState<Array<{ id: string; title: string; image: string; dates: string }>>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    dashboardService
+      .getTravelerDashboard()
+      .then((dash) => {
+        setUpcomingBookings(
+          (dash.upcomingBookings ?? []).map((b) => ({
+            id: b.id,
+            destination: b.trip?.destination ?? 'Trip',
+            image: (b.trip?.images?.[0] as string) ?? '',
+            dates: `${b.startDate} – ${b.endDate}`,
+            status: b.status,
+            type: `${b.numberOfTravelers} traveler(s)`,
+          }))
+        )
+        setPastBookings(
+          (dash.pastBookings ?? []).map((b) => ({
+            id: b.id,
+            title: b.trip?.title ?? 'Trip',
+            image: (b.trip?.images?.[0] as string) ?? '',
+            dates: `${b.startDate} – ${b.endDate}`,
+          }))
+        )
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
+
   const quickActions = [
     { icon: 'explore', label: 'Browse Trips', onClick: () => router.push(ROUTES.TRIPS) },
     { icon: 'settings', label: 'Settings', onClick: () => {} },
     { icon: 'help', label: 'Support', onClick: () => {} },
   ]
 
-  const upcomingTrips = [
-    {
-      id: '1',
-      destination: 'Tokyo, Japan',
-      image:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuCxmWDsIkXAsVqGnpCtc1Vyv2qkRrUb08_FOxVFn1ZMbSJFG9CbeIEf6Op957d44rKcURMs8D4_ebvS9z5fao7VESH-GV__Jp1uCerJMMWqe4YEI3Z3nmT4FyjwRmN6mVPvzyaM5OBh1ILh3AfMcG-woKpe95ahKSC2QqiHfViX4c6g4IM77srkrJNcvtIhqPgynhWIYh9I1GK2QfkTRs8JOqE-gg63I_P7YfYrU6kxDjQcwWd3JSIIgStM7ROyPN1B3hwnwQo4_G4',
-      dates: 'Oct 12 - Oct 20',
-      status: 'confirmed',
-      type: 'Business Class',
-    },
-    {
-      id: '2',
-      destination: 'New York, USA',
-      image:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuCTTKDU4zUi0mIk2QD2z6eqd6QprhTL0cMrAp25DjroANmP4ZS1HWntsiYtfXktp9NqHbnqmr9fvwT0Jnco9sDBI_lCO2sHo-MlNiKWxMUI9TN7kq6QZUrJWwh_zCALNrE1bmvcqFRDR9mmuBUI839jlo0TsBxcg8eBDxJzYSbuFZQjeA9cOt03AC8UiJow4CyyG2sinuPw4NhVuk8E6DK-8LASlPH_fgNNYAt8RkphrDrg1voT2a16iW3OQOacwuGQtcz6KfYGbUA',
-      dates: 'Nov 05 - Nov 08',
-      status: 'pending',
-      type: 'Standard Room',
-    },
-  ]
-
-  const wishlist = [
-    {
-      id: '1',
-      title: 'Bali Retreat',
-      image:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuBEgIScqGkIVftRRaeJHC_hdObj1Lpm-Ka96KF79X5kg4WgcRJKOY7QaiqThZW6ZM9vhFQ8ZPP8iR0cLHjl7AUjRZ5cOhHTeKd35c35RFLOFNtVNbbfftu78izR9MKLT4_jGIv52TbEb3pOtWxWlUjBusKQ2utZ3Dol4Iaxnl_GId-mVvsa3vZql3dU2SBFvAFgJ02qB5qneCXVZ_Ey8EB1PiuylvWcfT0M_FsW4l3aHiZlRBHZ98uaYWe7Yx3m8HMaDAEZhVrft-c',
-      subtitle: 'Est. $1,200',
-    },
-  ]
-
-  const pastTrips = [
-    {
-      id: '1',
-      title: 'Berlin Conference',
-      image:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuBWI-B6hTuVWrgrONX2j2vtZVf3Q0Y7HrUZTAxL1GrZIJ90K0jxcWvSkZgRjWGEnEZoDZt4ULBfmrDKu09XwHud1C6iohq4tBluNX_ptRbwBFdU1q-4Nq_cYOTz-SXla3D4yE0V4NbynqtZDKkR3RG_AboI67TJKvidD9z9HbFsXwHsdqJO3I1dwvss8M0FCcTlqGJ_8AyvioIstWwpYV4aSfkZ5msyKJy5diLYySt0Pj2qHzfmriE4T5ZR_XICBSlVmvIvN1Mzz1I',
-      dates: 'Sept 14 - Sept 18, 2023',
-    },
-    {
-      id: '2',
-      title: 'San Francisco HQ',
-      image:
-        'https://lh3.googleusercontent.com/aida-public/AB6AXuDQl9Ik4GWgaxJKdX46HMBI3DMv357bYH-ZfW_rJu1DjtBSIPhd3i-FaPZMsGGkKGxBU5CmNmwiY_IN-ON3HBQ3-6wXySj4mYv3AT-Cs7ghLaTsa8tG86Z7aWX7zJrEkM0cMNcGaZOI2LmHaI6vgwEKJx24I7CV1mm1usK638jjE3fpaA1K5k3Ussip6hzuoBQPmZx4dXxrH-OrTfORu89T_nCbsOwIts8fxLjCCV-P9lYPKk5MtP-lN2k2BdxTP_n2RqUzRXfwt3k',
-      dates: 'July 02 - July 05, 2023',
-    },
-  ]
+  const wishlist: Array<{ id: string; title: string; image: string; subtitle: string }> = []
 
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden bg-background-light dark:bg-background-dark">
@@ -115,8 +102,8 @@ export default function TravelerDashboardClient() {
           </div>
         <div className="flex items-center gap-3">
           <Avatar
-            src="https://lh3.googleusercontent.com/aida-public/AB6AXuAtQvhVyGhF9vZ2gsk0k12yfZjV1oZtLzZ-UIRwC7O2kA_1CnL84yqN4ftXTib6f6aBfGO1OG7wLhddpC-l-wmrR_Tii_i_F9pcGhCN8mwO9RE95-e4aJ-PHyJmofmLaxf3ihyT0R7BU4nCj-lhB6p0g0kx-hno1eWq0yCT4LNRuKILXyFBKIWGhDM-B9FUuGE4_PfSLjFqlA_X9XHaz4UYKbONkatEm6R5uqz-YIda0WwyqPS-5KuUpewqj8m--XOBZEnQGTO0QDc"
-            name="Sarah Jenkins"
+            src={user?.avatar ?? ''}
+            name={user?.fullName ?? 'Traveler'}
             size="lg"
           />
           <div className="flex flex-col">
@@ -124,7 +111,7 @@ export default function TravelerDashboardClient() {
               Welcome back
             </p>
             <p className="text-slate-900 dark:text-white text-lg font-bold leading-tight">
-              Sarah Jenkins
+              {user?.fullName ?? 'Traveler'}
             </p>
           </div>
         </div>
@@ -146,8 +133,11 @@ export default function TravelerDashboardClient() {
 
       <section className="flex flex-col pt-2 pb-4">
         <SectionHeader title="Upcoming Trips" className="px-5 md:px-8 mb-3" />
+        {loading ? (
+          <p className="px-5 md:px-8 text-slate-500 dark:text-slate-400">Loading...</p>
+        ) : (
         <div className="flex overflow-x-auto hide-scrollbar pl-5 md:pl-8 pb-4 gap-4 snap-x snap-mandatory md:grid md:grid-cols-2 lg:grid-cols-3 md:snap-none md:overflow-x-visible md:pl-8">
-          {upcomingTrips.map((trip) => (
+          {upcomingBookings.map((trip) => (
             <RoundedBox
               key={trip.id}
               variant="default"
@@ -157,8 +147,8 @@ export default function TravelerDashboardClient() {
             >
               <div className="relative h-36 w-full">
                 <div
-                  className="absolute inset-0 bg-cover bg-center"
-                  style={{ backgroundImage: `url('${trip.image}')` }}
+                  className="absolute inset-0 bg-cover bg-center bg-slate-200 dark:bg-slate-700"
+                  style={trip.image ? { backgroundImage: `url('${trip.image}')` } : undefined}
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
                 <div className="absolute top-3 left-3">
@@ -190,6 +180,7 @@ export default function TravelerDashboardClient() {
           ))}
           <div className="w-1 shrink-0"></div>
         </div>
+        )}
       </section>
 
       <section className="flex flex-col py-2 px-5 md:px-8">
@@ -211,7 +202,7 @@ export default function TravelerDashboardClient() {
       <section className="flex flex-col py-4 px-5 md:px-8 pb-24 md:pb-8">
         <SectionHeader title="Past Adventures" className="mb-3" />
         <div className="flex flex-col gap-3 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-4">
-          {pastTrips.map((trip) => (
+          {pastBookings.map((trip) => (
             <PastTripItem
               key={trip.id}
               image={trip.image}

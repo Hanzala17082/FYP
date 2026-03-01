@@ -1,12 +1,19 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Logo } from '@/shared/components/layout/Logo'
 import { Button } from '@/shared/components/ui/Button'
 import { ThemeToggle } from '@/shared/components/ui/ThemeToggle'
+import { authService } from '@/services/auth.service'
+import { useAuth } from '@/shared/contexts/AuthContext'
+import { setAuthCookies, getLoginRedirectRoute } from '@/shared/utils/auth'
+import { User } from '@/types/entities/user.entity'
 
 export default function RegisterPage() {
+  const router = useRouter()
+  const { login } = useAuth()
   const [role, setRole] = useState<'Traveler' | 'Agency'>('Traveler')
   const [formData, setFormData] = useState({
     fullName: '',
@@ -19,10 +26,53 @@ export default function RegisterPage() {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle registration logic
+    setIsLoading(true)
+    setError('')
+    try {
+      const res = await authService.register({
+        fullName: formData.fullName,
+        email: formData.email,
+        city: formData.city,
+        cnic: formData.cnic,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        role,
+        agreeToTerms: formData.agreeToTerms,
+      })
+      const payload = res.data
+      if (!payload?.accessToken || !payload?.user) {
+        setError('Registration succeeded but invalid response.')
+        setIsLoading(false)
+        return
+      }
+      const user: User = {
+        id: payload.user.id,
+        email: payload.user.email,
+        fullName: payload.user.fullName,
+        role: payload.user.role,
+        city: payload.user.city,
+        avatar: payload.user.avatar,
+        createdAt: payload.user.createdAt ?? '',
+        updatedAt: payload.user.createdAt ?? '',
+      }
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('accessToken', payload.accessToken)
+        localStorage.setItem('refreshToken', payload.refreshToken ?? '')
+      }
+      setAuthCookies(user, payload.accessToken)
+      login(user, payload.accessToken)
+      router.push(getLoginRedirectRoute(user.role))
+    } catch (err: any) {
+      const msg = err.response?.data?.message ?? err.response?.data?.errors ? Object.values(err.response.data.errors).flat().join(' ') : err.message ?? 'Registration failed.'
+      setError(msg)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -226,11 +276,17 @@ export default function RegisterPage() {
               </span>
             </label>
 
+            {error && (
+              <div className="w-full p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
+                <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+              </div>
+            )}
             <Button
               type="submit"
-              className="mt-4 w-full h-12 bg-primary hover:bg-blue-600 active:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-all duration-200"
+              disabled={isLoading}
+              className="mt-4 w-full h-12 bg-primary hover:bg-blue-600 active:bg-blue-700 text-white font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Account
+              {isLoading ? 'Creating account...' : 'Create Account'}
             </Button>
           </form>
 

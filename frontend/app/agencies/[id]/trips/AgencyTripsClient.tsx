@@ -1,12 +1,13 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/shared/components/layout'
 import { TripCard, ThemeToggle, SectionHeader, RoundedBox, Button } from '@/shared/components/ui'
 import { BackButton } from '@/shared/components/navigation'
-import { findAgencyById } from '@/data/dummyAgencies'
-import { getTripsByAgencyId } from '@/data/dummyTrips'
+import { agenciesService } from '@/services/agencies.service'
+import type { AgencyDTO, TripDTO } from '@/types/api/trips.types'
 
 interface AgencyTripsClientProps {
   agencyId: string
@@ -14,8 +15,30 @@ interface AgencyTripsClientProps {
 
 export default function AgencyTripsClient({ agencyId }: AgencyTripsClientProps) {
   const router = useRouter()
-  const agency = findAgencyById(agencyId)
-  const trips = getTripsByAgencyId(agencyId)
+  const [agency, setAgency] = useState<AgencyDTO | null>(null)
+  const [trips, setTrips] = useState<TripDTO[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    Promise.all([
+      agenciesService.getAgency(agencyId).then((res) => res.data),
+      agenciesService.getAgencyTrips(agencyId).then((res) => res.data?.trips ?? []),
+    ])
+      .then(([a, t]) => {
+        setAgency(a ?? null)
+        setTrips(Array.isArray(t) ? t : [])
+      })
+      .catch(() => setAgency(null))
+      .finally(() => setLoading(false))
+  }, [agencyId])
+
+  if (loading) {
+    return (
+      <div className="bg-background-light dark:bg-background-dark min-h-screen p-5 flex items-center justify-center">
+        <p className="text-slate-500 dark:text-slate-400">Loading...</p>
+      </div>
+    )
+  }
 
   if (!agency) {
     return (

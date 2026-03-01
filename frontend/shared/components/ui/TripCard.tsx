@@ -14,8 +14,12 @@ interface TripCardProps {
   price: number
   image: string
   images?: string[]
+  /** Use for /trips/[slug] link; falls back to id if not set */
+  slug?: string
   badge?: { text: string; status: 'pending' | 'confirmed' | 'trending' | 'approved' | 'active' | 'completed' | 'cancelled' }
   wishlistAction?: { active: boolean; onToggle: () => void }
+  /** When set, card opens this modal instead of navigating to detail page */
+  onSelectTrip?: (slug: string) => void
   className?: string
 }
 
@@ -29,8 +33,10 @@ export function TripCard({
   price,
   image,
   images,
+  slug,
   badge,
   wishlistAction,
+  onSelectTrip,
   className,
 }: TripCardProps) {
   // Safety check for agency
@@ -106,14 +112,9 @@ export function TripCard({
     setTrackIndex((i) => i + 1)
   }
 
-  return (
-    <Link
-      href={`/trips/${id}`}
-      className={cn(
-        'group flex flex-col overflow-hidden rounded-2xl bg-white dark:bg-card-dark shadow-xl border border-slate-200 dark:border-border-dark hover:border-primary/50 transition-all',
-        className
-      )}
-    >
+  const tripSlug = slug ?? id
+  const content = (
+    <>
       <div
         className="relative h-52 w-full overflow-hidden"
         onMouseEnter={() => setIsPaused(true)}
@@ -270,6 +271,40 @@ export function TripCard({
           </Button>
         </div>
       </div>
+    </>
+  )
+
+  if (onSelectTrip) {
+    return (
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={() => onSelectTrip(tripSlug)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault()
+            onSelectTrip(tripSlug)
+          }
+        }}
+        className={cn(
+          'group flex flex-col overflow-hidden rounded-2xl bg-white dark:bg-card-dark shadow-xl border border-slate-200 dark:border-border-dark hover:border-primary/50 transition-all cursor-pointer',
+          className
+        )}
+      >
+        {content}
+      </div>
+    )
+  }
+
+  return (
+    <Link
+      href={`/trips/${tripSlug}`}
+      className={cn(
+        'group flex flex-col overflow-hidden rounded-2xl bg-white dark:bg-card-dark shadow-xl border border-slate-200 dark:border-border-dark hover:border-primary/50 transition-all',
+        className
+      )}
+    >
+      {content}
     </Link>
   )
 }

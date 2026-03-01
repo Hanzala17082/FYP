@@ -9,9 +9,13 @@ import { LogoutButton } from '@/shared/components/auth/LogoutButton'
 import { ThemeToggle } from '@/shared/components/ui/ThemeToggle'
 import { NavButton } from '@/shared/components/navigation'
 import { ROUTES, USER_ROLES } from '@/config/constants'
-import { getAllTrips, getTripById, getTripsByAgencyId, createTrip, deleteTrip } from '@/data/dummyTrips'
-import { getTravelerBookingsByTravelerId } from '@/data/dummyBookings'
+import { dashboardService } from '@/services/dashboard.service'
+import { bookingsService } from '@/services/bookings.service'
+import { agenciesService } from '@/services/agencies.service'
+import { tripsService } from '@/services/trips.service'
 import { BookingCard } from '@/shared/components/ui'
+import type { BookingDTO } from '@/types/api/bookings.types'
+import type { TripDTO } from '@/types/api/trips.types'
 import Link from 'next/link'
 
 type ProfileTab = 'overview' | 'trips' | 'myTrips' | 'wishlist' | 'personal' | 'wallet' | 'complaints' | 'settings'
@@ -26,9 +30,10 @@ export default function UserProfileClient() {
   const [city, setCity] = useState(user?.city || '')
   const [avatar, setAvatar] = useState(user?.avatar || '')
   const [showSavedBanner, setShowSavedBanner] = useState(false)
-  const [agencyTrips, setAgencyTrips] = useState(
-    user?.role === USER_ROLES.AGENCY ? getTripsByAgencyId(user.id) : []
-  )
+  const [agencyTrips, setAgencyTrips] = useState<TripDTO[]>([])
+  const [travelerBookings, setTravelerBookings] = useState<BookingDTO[]>([])
+  const [wishlistTrips, setWishlistTrips] = useState<TripDTO[]>([])
+  const [profileLoading, setProfileLoading] = useState(true)
   const [isAddingTrip, setIsAddingTrip] = useState(false)
   const [newTrip, setNewTrip] = useState({
     title: '',
@@ -46,10 +51,39 @@ export default function UserProfileClient() {
   const [travelerKpiModal, setTravelerKpiModal] = useState<TravelerKpiKind | null>(null)
 
   useEffect(() => {
-    if (user?.role === USER_ROLES.AGENCY) {
-      setAgencyTrips(getTripsByAgencyId(user.id))
+    if (!user) return
+    let cancelled = false
+    setProfileLoading(true)
+    if (user.role === USER_ROLES.TRAVELER) {
+      Promise.all([
+        bookingsService.getBookings().then((res) => res.data?.bookings ?? []),
+        tripsService.getTrips({ limit: 100 }).then((res) => res.data?.trips ?? []),
+      ])
+        .then(([bookings, trips]) => {
+          if (!cancelled) {
+            setTravelerBookings(bookings)
+            setWishlistTrips(trips)
+          }
+        })
+        .catch(() => { if (!cancelled) setTravelerBookings([]); setWishlistTrips([]) })
+        .finally(() => { if (!cancelled) setProfileLoading(false) })
+    } else if (user.role === USER_ROLES.AGENCY) {
+      dashboardService
+        .getAgencyDashboard()
+        .then((dash) => {
+          if (cancelled) return
+          const agencyId = dash.agency?.id
+          if (agencyId) {
+            return agenciesService.getAgencyTrips(agencyId).then((res) => (res.data?.trips ?? [])).then(setAgencyTrips)
+          }
+        })
+        .catch(() => { if (!cancelled) setAgencyTrips([]) })
+        .finally(() => { if (!cancelled) setProfileLoading(false) })
+    } else {
+      setProfileLoading(false)
     }
-  }, [user])
+    return () => { cancelled = true }
+  }, [user?.id, user?.role])
 
   // Support deep-linking to a specific tab (e.g. /dashboard?tab=personal)
   useEffect(() => {
@@ -100,41 +134,13 @@ export default function UserProfileClient() {
     }))
   }
 
-  if (!user) {
-    // ProtectedRoute should already prevent this, but keep a safeguard
-    router.push(ROUTES.LOGIN)
-    return null
-  }
-
-  const handleSaveProfile = () => {
-    setUser({
-      ...user,
-      fullName: fullName.trim() || user.fullName,
-      city: city.trim() || undefined,
-      avatar: avatar.trim() || undefined,
-      updatedAt: new Date().toISOString(),
-    })
-    setShowSavedBanner(true)
-    setTimeout(() => setShowSavedBanner(false), 3000)
-  }
-
-  const roleLabel =
-    user.role === USER_ROLES.TRAVELER
-      ? 'Traveler'
-      : user.role === USER_ROLES.AGENCY
-        ? 'Agency'
-        : 'Admin'
-
+  // Hooks must run before any early return
   const travelerBookingRows = useMemo(() => {
     if (!user || user.role !== USER_ROLES.TRAVELER) return []
-    const bookings = getTravelerBookingsByTravelerId(user.id)
-    return bookings
-      .map((b) => ({ booking: b, trip: getTripById(b.tripId) }))
-      .filter(
-        (x): x is { booking: (typeof bookings)[number]; trip: NonNullable<ReturnType<typeof getTripById>> } =>
-          !!x.trip
-      )
-  }, [user])
+    return travelerBookings
+      .filter((b) => b.trip)
+      .map((b) => ({ booking: b, trip: b.trip! }))
+  }, [user, travelerBookings])
 
   const travelerKpis = useMemo(() => {
     if (!user || user.role !== USER_ROLES.TRAVELER) {
@@ -177,6 +183,30 @@ export default function UserProfileClient() {
     }
     return map
   }, [])
+
+  if (!user) {
+    router.push(ROUTES.LOGIN)
+    return null
+  }
+
+  const handleSaveProfile = () => {
+    setUser({
+      ...user,
+      fullName: fullName.trim() || user.fullName,
+      city: city.trim() || undefined,
+      avatar: avatar.trim() || undefined,
+      updatedAt: new Date().toISOString(),
+    })
+    setShowSavedBanner(true)
+    setTimeout(() => setShowSavedBanner(false), 3000)
+  }
+
+  const roleLabel =
+    user.role === USER_ROLES.TRAVELER
+      ? 'Traveler'
+      : user.role === USER_ROLES.AGENCY
+        ? 'Agency'
+        : 'Admin'
 
   const renderSidebar = () => (
     <aside className="hidden md:flex md:flex-col md:w-64 md:border-r md:border-slate-200 dark:md:border-slate-800 md:py-8 md:px-6 md:gap-4">
@@ -541,7 +571,7 @@ export default function UserProfileClient() {
             <Button
               variant="primary"
               size="sm"
-              onClick={() => {
+              onClick={async () => {
                 if (
                   !newTrip.title ||
                   !newTrip.destination ||
@@ -551,22 +581,30 @@ export default function UserProfileClient() {
                   alert('Please fill in title, destination, start and end date.')
                   return
                 }
-                // Create a very simple trip using the dummyTrips util
-                createTrip(user.id, {
-                  title: newTrip.title,
-                  destination: newTrip.destination,
-                  startDate: newTrip.startDate,
-                  endDate: newTrip.endDate,
-                  duration: newTrip.duration,
-                  price: newTrip.price,
-                  description: newTrip.title,
-                  shortDescription: newTrip.title,
-                  images: tripImages.length > 0 ? tripImages : [],
-                  availableDates: [],
-                  tags: [],
-                } as any)
-
-                setAgencyTrips(getTripsByAgencyId(user.id))
+                try {
+                  await tripsService.createTrip({
+                    title: newTrip.title,
+                    description: newTrip.title,
+                    shortDescription: newTrip.title,
+                    destination: newTrip.destination,
+                    price: newTrip.price,
+                    duration: newTrip.duration,
+                    images: tripImages.length > 0 ? tripImages : [],
+                    availableDates: [],
+                    startDate: newTrip.startDate,
+                    endDate: newTrip.endDate,
+                    tags: [],
+                  })
+                  const dash = await dashboardService.getAgencyDashboard()
+                  const agencyId = dash.agency?.id
+                  if (agencyId) {
+                    const res = await agenciesService.getAgencyTrips(agencyId)
+                    setAgencyTrips(res.data?.trips ?? [])
+                  }
+                } catch (e) {
+                  alert((e as any)?.response?.data?.message ?? 'Failed to create trip.')
+                  return
+                }
                 setIsAddingTrip(false)
                 setNewTrip({
                   title: '',
@@ -645,12 +683,9 @@ export default function UserProfileClient() {
                       <Button
                         variant="outline"
                         size="sm"
-                        className="h-9 px-3 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                        onClick={() => {
-                          if (!confirm('Are you sure you want to delete this trip?')) return
-                          deleteTrip(trip.id)
-                          setAgencyTrips((prev) => prev.filter((t) => t.id !== trip.id))
-                        }}
+                        className="h-9 px-3 border-slate-300 dark:border-slate-600 text-slate-500"
+                        disabled
+                        title="Delete trip is not available via API yet"
                       >
                         Delete
                       </Button>
@@ -713,11 +748,7 @@ export default function UserProfileClient() {
   )
 
   const renderTravelerTrips = () => {
-    const bookings = getTravelerBookingsByTravelerId(user.id)
-    const rows = bookings
-      .map((b) => ({ booking: b, trip: getTripById(b.tripId) }))
-      .filter((x): x is { booking: typeof bookings[number]; trip: NonNullable<ReturnType<typeof getTripById>> } => !!x.trip)
-
+    const rows = travelerBookingRows
     const enrolled = rows.filter((r) => r.booking.status === 'confirmed')
     const requested = rows.filter((r) => r.booking.status !== 'confirmed')
 
@@ -814,10 +845,9 @@ export default function UserProfileClient() {
   }
 
   const renderWishlist = () => {
-    const all = getAllTrips()
     const items = wishlist
-      .map((slug) => all.find((t) => t.slug === slug))
-      .filter(Boolean) as typeof all
+      .map((slug) => wishlistTrips.find((t) => t.slug === slug))
+      .filter(Boolean) as TripDTO[]
 
     return (
       <div className="space-y-6">

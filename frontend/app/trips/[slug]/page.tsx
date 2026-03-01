@@ -7,6 +7,10 @@ export const metadata: Metadata = generateMetadata({
   description: 'View detailed information about this trip',
 })
 
-export default function TripDetailPage({ params }: { params: { slug: string } }) {
-  return <TripDetailClient slug={params.slug} />
+type PageProps = { params: Promise<{ slug: string }> | { slug: string } }
+
+export default async function TripDetailPage({ params }: PageProps) {
+  const resolved = await Promise.resolve(params)
+  const slug = resolved?.slug ?? ''
+  return <TripDetailClient slug={slug} />
 }

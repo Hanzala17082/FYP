@@ -52,10 +52,14 @@ frontend/
    NEXT_PUBLIC_SITE_URL=http://localhost:3000
    ```
 
-3. **Run Development Server**
+3. **Run the app**
+   **Recommended (avoids 404s):** Build once, then run the production server:
    ```bash
-   npm run dev
+   npm run serve
    ```
+   Then open **http://localhost:3000** (or the port shown). This serves the app and all `_next/static` assets correctly.
+   If you see **404 for the page and for assets** (layout.css, webpack.js, main-app.js, etc.), you are likely on `next dev` with the file watcher broken — use `npm run serve` instead.
+   **With hot reload:** `npm run dev` or `npm run dev:fix` (may 404 on some systems due to "too many open files").
 
 4. **Build for Production**
    ```bash

@@ -5,15 +5,26 @@ import Link from 'next/link'
 import { Logo } from '@/shared/components/layout/Logo'
 import { Button } from '@/shared/components/ui/Button'
 import { ThemeToggle } from '@/shared/components/ui/ThemeToggle'
+import { authService } from '@/services/auth.service'
 
 export default function ForgotPasswordClient() {
   const [email, setEmail] = useState('')
   const [isSubmitted, setIsSubmitted] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    // Handle forgot password logic
-    setIsSubmitted(true)
+    setIsLoading(true)
+    setError('')
+    try {
+      await authService.forgotPassword({ email })
+      setIsSubmitted(true)
+    } catch (err: any) {
+      setError(err.response?.data?.message ?? err.message ?? 'Something went wrong. Please try again.')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   if (isSubmitted) {
@@ -122,13 +133,20 @@ export default function ForgotPasswordClient() {
             </div>
           </label>
 
+          {error && (
+            <div className="w-full p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
+              <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            </div>
+          )}
+
           <Button
             type="submit"
+            disabled={isLoading}
             variant="primary"
             size="lg"
-            className="mt-4 w-full h-14 bg-primary hover:bg-blue-600 active:scale-[0.98] text-white text-lg font-bold rounded-2xl shadow-glow transition-all duration-200"
+            className="mt-4 w-full h-14 bg-primary hover:bg-blue-600 active:scale-[0.98] text-white text-lg font-bold rounded-2xl shadow-glow transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Send Reset Link
+            {isLoading ? 'Sending...' : 'Send Reset Link'}
           </Button>
         </form>
 

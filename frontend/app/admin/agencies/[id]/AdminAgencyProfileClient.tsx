@@ -1,19 +1,73 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Header } from '@/shared/components/layout'
 import { Avatar, RoundedBox, Button, ThemeToggle } from '@/shared/components/ui'
 import { BackButton } from '@/shared/components/navigation'
-import { findAgencyById } from '@/data/dummyAgencies'
+import { agenciesService } from '@/services/agencies.service'
 import { cn } from '@/shared/utils/cn'
 
 interface AdminAgencyProfileClientProps {
   agencyId: string
 }
 
+type AgencyShape = {
+  id: string
+  name: string
+  avatar?: string
+  description: string
+  verified: boolean
+  rating: number
+  reviewCount: number
+  tripsCount: number
+  city: string
+  country: string
+  yearsExperience: string
+  email: string
+  stats: { totalTravelers: number; responseRate: number }
+  contact: { phone?: string; website?: string; address?: string }
+}
+
 export default function AdminAgencyProfileClient({ agencyId }: AdminAgencyProfileClientProps) {
   const router = useRouter()
-  const agency = findAgencyById(agencyId)
+  const [agency, setAgency] = useState<AgencyShape | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    agenciesService
+      .getAgency(agencyId)
+      .then((res) => {
+        const a = res.data
+        if (!a) return setAgency(null)
+        setAgency({
+          id: a.id,
+          name: a.name,
+          avatar: a.avatar,
+          description: a.description ?? '',
+          verified: a.verified ?? false,
+          rating: a.rating ?? 0,
+          reviewCount: a.reviewCount ?? 0,
+          tripsCount: a.reviewCount ?? 0,
+          city: a.location ?? '',
+          country: '',
+          yearsExperience: '-',
+          email: '',
+          stats: { totalTravelers: 0, responseRate: 0 },
+          contact: {},
+        })
+      })
+      .catch(() => setAgency(null))
+      .finally(() => setLoading(false))
+  }, [agencyId])
+
+  if (loading) {
+    return (
+      <div className="bg-background-light dark:bg-background-dark min-h-screen p-5 flex items-center justify-center">
+        <p className="text-slate-500 dark:text-slate-400">Loading...</p>
+      </div>
+    )
+  }
 
   if (!agency) {
     return (
@@ -74,7 +128,7 @@ export default function AdminAgencyProfileClient({ agencyId }: AdminAgencyProfil
                 {agency.verified && <span className="material-symbols-outlined text-primary text-xl">verified</span>}
               </div>
               <p className="text-slate-500 dark:text-slate-400 mb-3">
-                {agency.city}, {agency.country} • {agency.yearsExperience} years of experience
+                {agency.city}{agency.country ? `, ${agency.country}` : ''}{agency.yearsExperience !== '-' ? ` • ${agency.yearsExperience} years of experience` : ''}
               </p>
               <p className="text-slate-600 dark:text-slate-400 leading-relaxed mb-4">{agency.description}</p>
 
@@ -105,17 +159,19 @@ export default function AdminAgencyProfileClient({ agencyId }: AdminAgencyProfil
         <RoundedBox variant="default" padding="lg">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white mb-4">Private Contact Information</h2>
           <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">email</span>
-              <span className="text-slate-700 dark:text-slate-300">{agency.email}</span>
-            </div>
-            {agency.contact.phone && (
+            {agency.email && (
+              <div className="flex items-center gap-3">
+                <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">email</span>
+                <span className="text-slate-700 dark:text-slate-300">{agency.email}</span>
+              </div>
+            )}
+            {agency.contact?.phone && (
               <div className="flex items-center gap-3">
                 <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">phone</span>
                 <span className="text-slate-700 dark:text-slate-300">{agency.contact.phone}</span>
               </div>
             )}
-            {agency.contact.website && (
+            {agency.contact?.website && (
               <div className="flex items-center gap-3">
                 <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">language</span>
                 <a
@@ -128,7 +184,7 @@ export default function AdminAgencyProfileClient({ agencyId }: AdminAgencyProfil
                 </a>
               </div>
             )}
-            {agency.contact.address && (
+            {agency.contact?.address && (
               <div className="flex items-center gap-3">
                 <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">location_on</span>
                 <span className="text-slate-700 dark:text-slate-300">{agency.contact.address}</span>

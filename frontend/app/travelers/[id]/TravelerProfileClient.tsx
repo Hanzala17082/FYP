@@ -12,24 +12,100 @@ import {
   StatusBadge,
 } from '@/shared/components/ui'
 import { BackButton } from '@/shared/components/navigation'
-import { getTravelerProfileById } from '@/data/dummyTravelers'
+import { usersService } from '@/services/users.service'
+import { bookingsService } from '@/services/bookings.service'
 import { useAuth } from '@/shared/contexts/AuthContext'
-import { getTravelerBookingsByTravelerId } from '@/data/dummyBookings'
-import { getTripById } from '@/data/dummyTrips'
+import type { BookingDTO } from '@/types/api/bookings.types'
 
 interface TravelerProfileClientProps {
   travelerId: string
 }
 
+type ProfileShape = {
+  user: { id: string; fullName: string; avatar?: string; city?: string; email: string }
+  memberSince: string
+  bio: string
+  stats: { totalBookings: number; favoriteDestinations: string[] }
+}
+
 export default function TravelerProfileClient({ travelerId }: TravelerProfileClientProps) {
   const router = useRouter()
   const { user: currentUser } = useAuth()
-  const profile = getTravelerProfileById(travelerId)
+  const [profile, setProfile] = useState<ProfileShape | null>(null)
+  const [bookings, setBookings] = useState<BookingDTO[]>([])
+  const [loading, setLoading] = useState(true)
   const isOwner = !!currentUser && currentUser.id === travelerId
 
-  // localStorage-backed photos per traveler+trip (owner can add)
   const storageKeyPrefix = `travelerTripPhotos:${travelerId}:`
   const [tripPhotos, setTripPhotos] = useState<Record<string, string[]>>({})
+
+  useEffect(() => {
+    Promise.all([
+      usersService.getUserById(travelerId).catch(() => null),
+      bookingsService.getBookings({ traveler_id: travelerId }).then((res) => res.data?.bookings ?? []),
+    ])
+      .then(([userData, bookingsList]) => {
+        if (userData) {
+          setProfile({
+            user: {
+              id: userData.id,
+              fullName: userData.fullName,
+              avatar: userData.avatar,
+              city: userData.city,
+              email: userData.email,
+            },
+            memberSince: userData.createdAt ?? '',
+            bio: '',
+            stats: {
+              totalBookings: bookingsList.length,
+              favoriteDestinations: [],
+            },
+          })
+        } else {
+          setProfile(null)
+        }
+        setBookings(bookingsList)
+      })
+      .catch(() => setProfile(null))
+      .finally(() => setLoading(false))
+  }, [travelerId])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || bookings.length === 0) return
+    const next: Record<string, string[]> = {}
+    for (const b of bookings) {
+      const raw = window.localStorage.getItem(`${storageKeyPrefix}${b.trip?.id ?? b.id}`)
+      if (raw) {
+        try {
+          next[b.trip?.id ?? b.id] = JSON.parse(raw)
+        } catch {
+          // ignore
+        }
+      }
+    }
+    setTripPhotos(next)
+  }, [travelerId, bookings])
+
+  const pastConfirmedTrips = useMemo(() => {
+    const now = new Date()
+    return bookings
+      .filter((b) => b.status === 'confirmed' && b.trip)
+      .map((b) => ({ booking: b, trip: b.trip! }))
+      .filter(({ trip }) => {
+        const end = new Date(trip.endDate)
+        return !Number.isNaN(end.getTime()) && end.getTime() < now.getTime()
+      })
+      .sort((a, b) => new Date(b.trip.endDate).getTime() - new Date(a.trip.endDate).getTime())
+  }, [bookings])
+
+
+  if (loading) {
+    return (
+      <div className="bg-background-light dark:bg-background-dark min-h-screen p-5 flex items-center justify-center">
+        <p className="text-slate-500 dark:text-slate-400">Loading...</p>
+      </div>
+    )
+  }
 
   if (!profile) {
     return (
@@ -46,40 +122,6 @@ export default function TravelerProfileClient({ travelerId }: TravelerProfileCli
       </div>
     )
   }
-
-  // Load saved trip photos from localStorage
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const bookings = getTravelerBookingsByTravelerId(travelerId)
-    const next: Record<string, string[]> = {}
-    for (const b of bookings) {
-      const raw = window.localStorage.getItem(`${storageKeyPrefix}${b.tripId}`)
-      if (raw) {
-        try {
-          next[b.tripId] = JSON.parse(raw)
-        } catch {
-          // ignore
-        }
-      }
-    }
-    setTripPhotos(next)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [travelerId])
-
-  const pastConfirmedTrips = useMemo(() => {
-    const now = new Date()
-    const bookings = getTravelerBookingsByTravelerId(travelerId).filter((b) => b.status === 'confirmed')
-    const trips = bookings
-      .map((b) => ({ booking: b, trip: getTripById(b.tripId) }))
-      .filter((x): x is { booking: typeof bookings[number]; trip: NonNullable<ReturnType<typeof getTripById>> } => !!x.trip)
-      // Only PAST trips (privacy: never show upcoming)
-      .filter(({ trip }) => {
-        const end = new Date(trip.endDate)
-        return !Number.isNaN(end.getTime()) && end.getTime() < now.getTime()
-      })
-      .sort((a, b) => new Date(b.trip.endDate).getTime() - new Date(a.trip.endDate).getTime())
-    return trips
-  }, [travelerId])
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen pb-24">

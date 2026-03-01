@@ -1,14 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Header } from '@/shared/components/layout'
-import { StatCard, ThemeToggle, Avatar } from '@/shared/components/ui'
+import { StatCard, ThemeToggle } from '@/shared/components/ui'
 import { SectionHeader } from '@/shared/components/ui'
 import { RoundedBox } from '@/shared/components/ui/RoundedBox'
 import { Button } from '@/shared/components/ui/Button'
 import { LogoutButton } from '@/shared/components/auth/LogoutButton'
-import { getAllTravelerProfiles } from '@/data/dummyTravelers'
-import { getAllAgencies } from '@/data/dummyAgencies'
+import { NavButton } from '@/shared/components/navigation'
+import { dashboardService } from '@/services/dashboard.service'
+import { ROUTES } from '@/config/constants'
 import Link from 'next/link'
 
 // Detail Modal Component
@@ -51,49 +52,80 @@ function DetailModal({
 
 export default function AdminDashboardClient() {
   const [selectedModal, setSelectedModal] = useState<'users' | 'trips' | 'agencies' | 'verified' | 'basic' | null>(null)
+  const [stats, setStats] = useState({
+    totalUsers: 0,
+    activeUsers: 0,
+    newUsersThisMonth: 0,
+    totalTrips: 0,
+    activeTrips: 0,
+    upcomingTrips: 0,
+    totalAgencies: 0,
+    verifiedAgencies: 0,
+    basicAgencies: 0,
+    pendingVerifications: 0,
+    totalBookings: 0,
+    revenue: 0,
+  })
+  const [recentUsers, setRecentUsers] = useState<Array<{ id: string; name: string; email: string; role: string; joined: string; status: string }>>([])
+  const [recentTrips, setRecentTrips] = useState<Array<{ id: string; title: string; agency: string; status: string; bookings: number; price: string }>>([])
+  const [agencies, setAgencies] = useState<Array<{ id: string; name: string; email: string; status: string; trips: number; joined: string; rating: number; reviewCount: number; avatar?: string }>>([])
+  const [loading, setLoading] = useState(true)
 
-  // Mock data
-  const stats = {
-    totalUsers: 8456,
-    activeUsers: 7234,
-    newUsersThisMonth: 234,
-    totalTrips: 1247,
-    activeTrips: 892,
-    upcomingTrips: 156,
-    totalAgencies: 189,
-    verifiedAgencies: 142,
-    basicAgencies: 47,
-    pendingVerifications: 12,
-    totalBookings: 3456,
-    revenue: 1245000,
-  }
-
-  const recentUsers = [
-    { id: 1, name: 'John Doe', email: 'john@example.com', role: 'Traveler', joined: '2 days ago', status: 'Active' },
-    { id: 2, name: 'Jane Smith', email: 'jane@example.com', role: 'Traveler', joined: '5 days ago', status: 'Active' },
-    { id: 3, name: 'Mike Johnson', email: 'mike@example.com', role: 'Traveler', joined: '1 week ago', status: 'Active' },
-    { id: 4, name: 'Sarah Williams', email: 'sarah@example.com', role: 'Traveler', joined: '2 weeks ago', status: 'Active' },
-  ]
-
-  const recentTrips = [
-    { id: 1, title: 'Paris Adventure', agency: 'Global Travels', status: 'Active', bookings: 45, price: '$1,299' },
-    { id: 2, title: 'Tokyo Discovery', agency: 'Asia Tours', status: 'Active', bookings: 32, price: '$2,499' },
-    { id: 3, title: 'Bali Paradise', agency: 'Tropical Escapes', status: 'Upcoming', bookings: 28, price: '$899' },
-    { id: 4, title: 'New York City Tour', agency: 'Urban Adventures', status: 'Active', bookings: 67, price: '$1,599' },
-  ]
-
-  const allAgencies = getAllAgencies()
-  const agencies = allAgencies.map((agency) => ({
-    id: agency.id,
-    name: agency.name,
-    email: agency.email,
-    status: agency.verified ? 'Verified' : 'Basic',
-    trips: agency.tripsCount,
-    joined: new Date(agency.stats.totalTrips).toLocaleDateString(),
-    rating: agency.rating,
-    reviewCount: agency.reviewCount,
-    avatar: agency.avatar,
-  }))
+  useEffect(() => {
+    dashboardService
+      .getAdminDashboard()
+      .then((dash) => {
+        setStats({
+          totalUsers: dash.stats?.totalUsers ?? 0,
+          activeUsers: dash.stats?.totalUsers ?? 0,
+          newUsersThisMonth: 0,
+          totalTrips: dash.stats?.totalTrips ?? 0,
+          activeTrips: dash.stats?.totalTrips ?? 0,
+          upcomingTrips: 0,
+          totalAgencies: dash.stats?.totalAgencies ?? 0,
+          verifiedAgencies: (dash.recentAgencies ?? []).filter((a) => a.verified).length,
+          basicAgencies: (dash.recentAgencies ?? []).filter((a) => !a.verified).length,
+          pendingVerifications: 0,
+          totalBookings: dash.stats?.totalBookings ?? 0,
+          revenue: 0,
+        })
+        setRecentUsers(
+          (dash.recentUsers ?? []).map((u) => ({
+            id: u.id,
+            name: u.fullName,
+            email: u.email,
+            role: u.role,
+            joined: u.createdAt ? new Date(u.createdAt).toLocaleDateString() : '',
+            status: 'Active',
+          }))
+        )
+        setRecentTrips(
+          (dash.recentTrips ?? []).map((t) => ({
+            id: t.id,
+            title: t.title,
+            agency: t.agency?.name ?? '',
+            status: t.status ?? 'active',
+            bookings: t.reviewCount ?? 0,
+            price: `$${t.price ?? 0}`,
+          }))
+        )
+        setAgencies(
+          (dash.recentAgencies ?? []).map((a) => ({
+            id: a.id,
+            name: a.name,
+            email: '',
+            status: a.verified ? 'Verified' : 'Basic',
+            trips: a.reviewCount ?? 0,
+            joined: '',
+            rating: a.rating ?? 0,
+            reviewCount: a.reviewCount ?? 0,
+            avatar: a.avatar,
+          }))
+        )
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false))
+  }, [])
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen">

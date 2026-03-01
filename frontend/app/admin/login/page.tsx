@@ -7,9 +7,10 @@ import { Logo } from '@/shared/components/layout/Logo'
 import { Button } from '@/shared/components/ui/Button'
 import { ThemeToggle } from '@/shared/components/ui/ThemeToggle'
 import { useAuth } from '@/shared/contexts/AuthContext'
-import { setAuthCookies, getDashboardRoute, getLoginRedirectRoute } from '@/shared/utils/auth'
+import { setAuthCookies } from '@/shared/utils/auth'
 import { ROUTES } from '@/config/constants'
-import { findUserByCredentials, toUser } from '@/data/dummyUsers'
+import { authService } from '@/services/auth.service'
+import { User } from '@/types/entities/user.entity'
 
 export default function AdminLoginPage() {
   const [email, setEmail] = useState('')
@@ -17,29 +18,39 @@ export default function AdminLoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
+  const [mounted, setMounted] = useState(false)
   const { login, isAuthenticated } = useAuth()
   const router = useRouter()
 
-  // Redirect if already authenticated as admin
-  // Allow other roles to access this page (they can log out and log in as admin)
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Redirect if already authenticated as admin (client-only to avoid SSR/localStorage issues)
+  useEffect(() => {
+    if (!mounted || typeof window === 'undefined') return
     if (isAuthenticated) {
       const storedUser = localStorage.getItem('user')
       if (storedUser) {
         try {
           const user = JSON.parse(storedUser)
-          // Only redirect if already logged in as Admin
-          // Other roles can stay on this page to log in as admin
           if (user.role === 'Admin') {
             router.push(ROUTES.DASHBOARD.ADMIN)
           }
-          // Don't redirect other roles - let them access the admin login page
         } catch {
           // If parsing fails, allow them to stay on the page
         }
       }
     }
-  }, [isAuthenticated, router])
+  }, [mounted, isAuthenticated, router])
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+        <div className="animate-pulse text-slate-500 dark:text-slate-400">Loading...</div>
+      </div>
+    )
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -47,31 +58,42 @@ export default function AdminLoginPage() {
     setError('')
 
     try {
-      // Find admin user in dummy users database
-      const dummyUser = findUserByCredentials(email, password, 'Admin')
-
-      if (!dummyUser) {
-        setError('Invalid admin credentials. Please check your email and password.')
+      const res = await authService.login({ email, password, role: 'Admin' })
+      const payload = res?.data
+      if (!payload?.user || !payload?.accessToken) {
+        setError('Invalid response from server.')
         setIsLoading(false)
         return
       }
-
-      // Convert to User (remove password)
-      const user = toUser(dummyUser)
-
-      // Generate token (in production, this would come from API)
-      const token = `admin-token-${user.id}-${Date.now()}`
-
-      // Set auth cookies for middleware
-      setAuthCookies(user, token)
-
-      // Login via context
-      login(user, token)
-
-      // Redirect to admin dashboard
+      if (payload.user.role !== 'Admin') {
+        setError('Invalid role for this account.')
+        setIsLoading(false)
+        return
+      }
+      const user: User = {
+        id: payload.user.id,
+        email: payload.user.email,
+        fullName: payload.user.fullName,
+        role: payload.user.role,
+        city: payload.user.city,
+        avatar: payload.user.avatar,
+        createdAt: payload.user.createdAt ?? '',
+        updatedAt: payload.user.createdAt ?? '',
+      }
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('refreshToken', payload.refreshToken ?? '')
+      }
+      setAuthCookies(user, payload.accessToken)
+      login(user, payload.accessToken)
       router.push(ROUTES.DASHBOARD.ADMIN)
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please check your credentials.')
+      const status = err.response?.status
+      let msg = err.response?.data?.message ?? err.message ?? 'Invalid admin credentials. Please check your email and password.'
+      if (status === 401) {
+        msg += ' Check admin email/password and that an admin user exists in the database.'
+      }
+      setError(msg)
+    } finally {
       setIsLoading(false)
     }
   }

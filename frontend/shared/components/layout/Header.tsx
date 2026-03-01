@@ -1,6 +1,7 @@
 'use client'
 
 import { ReactNode } from 'react'
+import Link from 'next/link'
 import { cn } from '@/shared/utils/cn'
 import { Logo } from './Logo'
 import { IconButton } from '../ui/IconButton'
@@ -11,6 +12,8 @@ interface HeaderProps {
   subtitle?: string
   showLogo?: boolean
   variant?: 'light' | 'dark'
+  /** When set, the title becomes a link (e.g. to home). */
+  titleHref?: string
   leftAction?: ReactNode
   rightAction?: ReactNode
   showThemeToggle?: boolean
@@ -22,6 +25,7 @@ export function Header({
   subtitle,
   showLogo = false,
   variant = 'light',
+  titleHref,
   leftAction,
   rightAction,
   showThemeToggle = true,
@@ -41,7 +45,9 @@ export function Header({
         <div className="flex items-center gap-3">
           {leftAction}
           {showLogo ? (
-            <Logo variant={variant} />
+            <Link href="/" className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg">
+              <Logo variant={variant} />
+            </Link>
           ) : (
             <div className="flex flex-col">
               {subtitle && (
@@ -57,17 +63,33 @@ export function Header({
                 </span>
               )}
               {title && (
-                <h2
-                  className={cn(
-                    'text-2xl sm:text-3xl font-extrabold leading-tight tracking-tight flex items-center gap-1',
-                    variant === 'light'
-                      ? 'text-slate-900 dark:text-white'
-                      : 'text-white'
-                  )}
-                >
-                  {title}
-                  {variant === 'light' && <span className="text-primary">.</span>}
-                </h2>
+                titleHref ? (
+                  <Link href={titleHref}>
+                    <h2
+                      className={cn(
+                        'text-2xl sm:text-3xl font-extrabold leading-tight tracking-tight flex items-center gap-1 hover:opacity-90 transition-opacity',
+                        variant === 'light'
+                          ? 'text-slate-900 dark:text-white'
+                          : 'text-white'
+                      )}
+                    >
+                      {title}
+                      {variant === 'light' && <span className="text-primary">.</span>}
+                    </h2>
+                  </Link>
+                ) : (
+                  <h2
+                    className={cn(
+                      'text-2xl sm:text-3xl font-extrabold leading-tight tracking-tight flex items-center gap-1',
+                      variant === 'light'
+                        ? 'text-slate-900 dark:text-white'
+                        : 'text-white'
+                    )}
+                  >
+                    {title}
+                    {variant === 'light' && <span className="text-primary">.</span>}
+                  </h2>
+                )
               )}
             </div>
           )}

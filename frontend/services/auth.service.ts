@@ -5,7 +5,7 @@ import {
   AuthResponseDTO,
   ForgotPasswordRequestDTO,
   ResetPasswordRequestDTO,
-} from '@/types/api/auth.dto'
+} from '@/types/api/auth.types'
 
 export const authService = {
   login: async (data: LoginRequestDTO) => {

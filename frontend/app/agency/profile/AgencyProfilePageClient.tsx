@@ -1,17 +1,18 @@
 'use client'
 
-import { useEffect, useMemo } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/shared/contexts/AuthContext'
 import { ROUTES, USER_ROLES } from '@/config/constants'
-import { findAgencyByEmail, findAgencyById } from '@/data/dummyAgencies'
+import { dashboardService } from '@/services/dashboard.service'
 import AgencyProfileClient from '@/app/agencies/[id]/AgencyProfileClient'
 
 export default function AgencyProfilePageClient() {
   const router = useRouter()
   const { user, isAuthenticated, isLoading } = useAuth()
+  const [agencyId, setAgencyId] = useState<string | null>(null)
+  const [agencyLoading, setAgencyLoading] = useState(true)
 
-  // Ensure only authenticated Agency users can access
   useEffect(() => {
     if (isLoading) return
 
@@ -28,25 +29,19 @@ export default function AgencyProfilePageClient() {
             ? ROUTES.DASHBOARD.TRAVELER
             : ROUTES.LOGIN
       )
+      return
     }
+
+    dashboardService
+      .getAgencyDashboard()
+      .then((dash) => {
+        if (dash.agency?.id) setAgencyId(dash.agency.id)
+      })
+      .catch(() => setAgencyId(null))
+      .finally(() => setAgencyLoading(false))
   }, [isAuthenticated, isLoading, user, router])
 
-  const agencyId = useMemo(() => {
-    if (!user) return null
-
-    // Prefer user.id (matches dummy agency ids in this project)
-    if (user.id && findAgencyById(user.id)) return user.id
-
-    // Fallback: match by email
-    if (user.email) {
-      const agency = findAgencyByEmail(user.email)
-      if (agency) return agency.id
-    }
-
-    return null
-  }, [user])
-
-  if (isLoading) {
+  if (isLoading || agencyLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark">
         <div className="text-center">
@@ -70,7 +65,7 @@ export default function AgencyProfilePageClient() {
     )
   }
 
-  if (!agencyId) {
+  if (!agencyLoading && !agencyId) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-background-dark p-6">
         <div className="text-center max-w-md">
@@ -83,7 +78,8 @@ export default function AgencyProfilePageClient() {
     )
   }
 
-  // Render the same public profile that travelers see (without personal contact details)
+  if (!agencyId) return null
+
   return <AgencyProfileClient agencyId={agencyId} />
 }
 

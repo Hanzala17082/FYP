@@ -3,7 +3,7 @@ import {
   BookingRequestDTO,
   BookingDTO,
   BookingListResponseDTO,
-} from '@/types/api/bookings.dto'
+} from '@/types/api/bookings.types'
 import { PaginationParams } from '@/types/api/common.type'
 
 export const bookingsService = {
@@ -11,7 +11,7 @@ export const bookingsService = {
     return apiClient.post<BookingDTO>('/bookings', data)
   },
 
-  getBookings: async (params?: PaginationParams) => {
+  getBookings: async (params?: PaginationParams & { traveler_id?: string }) => {
     return apiClient.get<BookingListResponseDTO>('/bookings', { params })
   },
 

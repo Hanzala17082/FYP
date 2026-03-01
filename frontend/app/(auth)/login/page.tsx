@@ -9,7 +9,8 @@ import { ThemeToggle } from '@/shared/components/ui/ThemeToggle'
 import { useAuth } from '@/shared/contexts/AuthContext'
 import { setAuthCookies, getLoginRedirectRoute } from '@/shared/utils/auth'
 import { ROUTES } from '@/config/constants'
-import { findUserByCredentials, toUser } from '@/data/dummyUsers'
+import { authService } from '@/services/auth.service'
+import { User } from '@/types/entities/user.entity'
 
 export default function LoginPage() {
   const [role, setRole] = useState<'Traveler' | 'Agency'>('Traveler')
@@ -42,31 +43,33 @@ export default function LoginPage() {
     setError('')
 
     try {
-      // Find user in dummy users database
-      const dummyUser = findUserByCredentials(email, password, role)
-
-      if (!dummyUser) {
-        setError('Invalid email or password. Please check your credentials.')
+      const res = await authService.login({ email, password, role })
+      const payload = res.data
+      if (!payload?.accessToken || !payload?.user) {
+        setError('Invalid response from server.')
         setIsLoading(false)
         return
       }
-
-      // Convert to User (remove password)
-      const user = toUser(dummyUser)
-
-      // Generate token (in production, this would come from API)
-      const token = `token-${user.id}-${Date.now()}`
-
-      // Set auth cookies for middleware
-      setAuthCookies(user, token)
-
-      // Login via context
-      login(user, token)
-
-      // Redirect based on role (Travelers go to trips, others to dashboard)
+      const user: User = {
+        id: payload.user.id,
+        email: payload.user.email,
+        fullName: payload.user.fullName,
+        role: payload.user.role,
+        city: payload.user.city,
+        avatar: payload.user.avatar,
+        createdAt: payload.user.createdAt ?? '',
+        updatedAt: payload.user.createdAt ?? '',
+      }
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('refreshToken', payload.refreshToken ?? '')
+      }
+      setAuthCookies(user, payload.accessToken)
+      login(user, payload.accessToken)
       router.push(getLoginRedirectRoute(user.role))
     } catch (err: any) {
-      setError(err.message || 'Login failed. Please try again.')
+      const msg = err.response?.data?.message ?? err.message ?? 'Invalid email or password. Please check your credentials.'
+      setError(msg)
+    } finally {
       setIsLoading(false)
     }
   }
