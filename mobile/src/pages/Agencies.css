@@ -1,0 +1,325 @@
+/* Agencies Page Styles */
+
+:root {
+  --primary-color: #2563eb;
+  --primary-light: #3b82f6;
+  --success-color: #10b981;
+  --text-primary: #1f2937;
+  --text-secondary: #6b7280;
+  --text-light: #9ca3af;
+  --bg-primary: #ffffff;
+  --bg-secondary: #f9fafb;
+  --border-color: #e5e7eb;
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --transition-fast: 200ms ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --text-primary: #f3f4f6;
+    --text-secondary: #d1d5db;
+    --text-light: #9ca3af;
+    --bg-primary: #111827;
+    --bg-secondary: #1f2937;
+    --border-color: #4b5563;
+  }
+}
+
+.agencies-content {
+  --background: var(--bg-primary);
+}
+
+.agencies-header {
+  box-shadow: var(--shadow-sm);
+}
+
+.agencies-container {
+  padding: 16px;
+  padding-bottom: 32px;
+}
+
+/* Search Section */
+.search-section {
+  margin-bottom: 20px;
+}
+
+.agencies-search {
+  --background: var(--bg-secondary);
+  --border-radius: 12px;
+  --box-shadow: var(--shadow-sm);
+  --padding-start: 16px;
+  --padding-end: 16px;
+  --padding-top: 8px;
+  --padding-bottom: 8px;
+  margin: 0;
+  border: 1px solid var(--border-color);
+}
+
+.agencies-search ion-icon {
+  color: var(--text-secondary);
+}
+
+.agencies-search::part(native-input) {
+  color: var(--text-primary);
+}
+
+/* Agencies List */
+.agencies-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Agency Card */
+.agency-card {
+  --background: var(--bg-secondary);
+  --box-shadow: var(--shadow-sm);
+  margin: 0;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  transition: all var(--transition-fast);
+  cursor: pointer;
+}
+
+.agency-card:active {
+  transform: scale(0.98);
+  box-shadow: var(--shadow-md);
+}
+
+.agency-card ion-card-content {
+  padding: 16px;
+}
+
+.agency-card-content {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+/* Agency Avatar */
+.agency-avatar {
+  width: 56px;
+  height: 56px;
+  min-width: 56px;
+  background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.avatar-initials {
+  color: white;
+  font-weight: 700;
+  font-size: 18px;
+}
+
+/* Agency Info */
+.agency-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.agency-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.agency-name {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.verified-icon {
+  font-size: 18px;
+  color: var(--success-color);
+  flex-shrink: 0;
+}
+
+/* Agency Location */
+.agency-location {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  line-height: 1.2;
+}
+
+.agency-location ion-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+/* Agency Rating */
+.agency-rating {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.stars {
+  display: flex;
+  gap: 2px;
+}
+
+.stars ion-icon {
+  font-size: 14px;
+  flex-shrink: 0;
+}
+
+.star-filled {
+  color: #f59e0b;
+}
+
+.star-empty {
+  color: #d1d5db;
+}
+
+@media (prefers-color-scheme: dark) {
+  .star-empty {
+    color: #4b5563;
+  }
+}
+
+.rating-text {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* Agency Description */
+.agency-description {
+  margin: 8px 0;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Agency Stats */
+.agency-stats {
+  display: flex;
+  gap: 12px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-color);
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.2;
+}
+
+.stat-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* Skeleton Loading */
+.skeleton-card {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--bg-secondary) 25%,
+    var(--bg-tertiary) 50%,
+    var(--bg-secondary) 75%
+  );
+  background-size: 200% 100%;
+  animation: skeleton-loading 1.5s infinite;
+}
+
+@keyframes skeleton-loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Empty State */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 60px 24px;
+  gap: 16px;
+}
+
+.empty-state ion-icon {
+  font-size: 64px;
+  color: var(--text-light);
+  opacity: 0.5;
+}
+
+.empty-state h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.empty-state p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+  .agencies-container {
+    padding: 12px;
+  }
+
+  .agency-avatar {
+    width: 48px;
+    height: 48px;
+    min-width: 48px;
+  }
+
+  .avatar-initials {
+    font-size: 16px;
+  }
+
+  .agency-name {
+    font-size: 15px;
+  }
+}
+
+/* Safe Area Support */
+@supports (padding: max(0px)) {
+  .agencies-container {
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: max(32px, env(safe-area-inset-bottom));
+  }
+}
