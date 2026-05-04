@@ -1,0 +1,559 @@
+/* CSS Variables - Theme Colors */
+:root {
+  --color-primary: #2563EB;
+  --color-primary-hover: #1D4ED8;
+  --color-primary-light: #3B82F6;
+  --color-dark: #0F172A;
+  --color-light: #F8FAFC;
+  --color-text-dark: #0F172A;
+  --color-text-light: #64748B;
+  --color-border: #E2E8F0;
+  --color-border-dark: #1E293B;
+  --color-error: #EF4444;
+  --color-success: #10B981;
+  --color-white: #FFFFFF;
+  --color-overlay: rgba(0, 0, 0, 0.6);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-primary: #3B82F6;
+    --color-primary-hover: #2563EB;
+    --color-dark: #020617;
+    --color-light: #1E293B;
+    --color-text-dark: #F1F5F9;
+    --color-text-light: #94A3B8;
+    --color-border: #334155;
+    --color-border-dark: #0F172A;
+    --color-white: #1E293B;
+  }
+}
+
+/* Register Page Header */
+.register-header {
+  --background: transparent;
+  background-color: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  z-index: 100;
+}
+
+@media (prefers-color-scheme: dark) {
+  .register-header {
+    background-color: rgba(15, 23, 42, 0.95);
+  }
+}
+
+.register-header ion-toolbar {
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --padding-start: 16px;
+  --padding-end: 16px;
+  height: 56px;
+}
+
+.register-header ion-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-text-dark);
+}
+
+/* Register Content */
+.register-content {
+  --background: linear-gradient(180deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 1) 100%);
+  position: relative;
+  padding: 0;
+}
+
+@media (prefers-color-scheme: dark) {
+  .register-content {
+    --background: linear-gradient(180deg, rgba(15, 23, 42, 0.95) 0%, rgba(2, 6, 23, 1) 100%);
+  }
+}
+
+/* Hero Section */
+.register-hero {
+  position: relative;
+  height: 200px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, #1D4ED8 100%);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  padding-bottom: 40px;
+  overflow: hidden;
+  margin-bottom: -50px;
+  z-index: 1;
+}
+
+.register-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 600"><defs><linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%"  style="stop-color:rgba(255,255,255,0.1);stop-opacity:1" /><stop offset="100%" style="stop-color:rgba(0,0,0,0.1);stop-opacity:1" /></linearGradient></defs><rect width="1200" height="600" fill="url(%23grad)"/></svg>');
+  background-size: cover;
+}
+
+.register-hero-title {
+  position: relative;
+  z-index: 2;
+  color: var(--color-white);
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0;
+  text-align: center;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+/* Form Container */
+.register-form-container {
+  position: relative;
+  z-index: 10;
+  background: var(--color-white);
+  border-radius: 20px 20px 0 0;
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.06);
+  padding: 24px;
+  margin-top: 50px;
+  min-height: calc(100vh - 250px);
+}
+
+@media (prefers-color-scheme: dark) {
+  .register-form-container {
+    background: var(--color-light);
+  }
+}
+
+/* Form Header */
+.register-form-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.register-form-title {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-text-dark);
+  margin: 0 0 8px 0;
+}
+
+.register-form-subtitle {
+  font-size: 14px;
+  color: var(--color-text-light);
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Role Selector */
+.register-role-selector {
+  display: flex;
+  gap: 8px;
+  background: #F3F4F6;
+  padding: 4px;
+  border-radius: 16px;
+  margin-bottom: 24px;
+  width: 100%;
+
+  @media (prefers-color-scheme: dark) {
+    background: rgba(255, 255, 255, 0.05);
+  }
+}
+
+.role-pill {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--color-text-light);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms ease;
+  outline: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.role-pill:active {
+  transform: scale(0.98);
+}
+
+.role-pill.active {
+  background: var(--color-white);
+  color: var(--color-primary);
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);
+
+  @media (prefers-color-scheme: dark) {
+    background: rgba(255, 255, 255, 0.1);
+    color: var(--color-primary-light);
+  }
+}
+
+/* Register Form */
+.register-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* Form Group */
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+
+  @media (max-width: 400px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+  margin-left: 4px;
+}
+
+/* Input Wrapper */
+.input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: transparent;
+}
+
+.input-wrapper.password-wrapper {
+  position: relative;
+}
+
+.input-icon {
+  position: absolute;
+  left: 12px;
+  width: 20px;
+  height: 20px;
+  color: var(--color-text-light);
+  pointer-events: none;
+  z-index: 2;
+  transition: color 200ms ease;
+}
+
+/* Ion Input Styling */
+.form-input {
+  --padding-start: 40px;
+  --padding-end: 12px;
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --background: transparent;
+  --border-radius: 12px;
+  --border-style: solid;
+  --border-width: 1px;
+  --border-color: var(--color-border);
+  height: 48px;
+  font-size: 16px;
+  color: var(--color-text-dark);
+  transition: all 200ms ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  .form-input {
+    --border-color: var(--color-border-dark);
+    color: var(--color-text-dark);
+  }
+}
+
+.form-input::placeholder {
+  color: var(--color-text-light);
+  opacity: 0.6;
+}
+
+.form-input:focus {
+  --border-color: var(--color-primary);
+  --background: rgba(37, 99, 235, 0.02);
+}
+
+@media (prefers-color-scheme: dark) {
+  .form-input:focus {
+    --border-color: var(--color-primary-light);
+    --background: rgba(59, 130, 246, 0.05);
+  }
+}
+
+/* Password Toggle Button */
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-light);
+  transition: color 200ms ease;
+  z-index: 3;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.password-toggle:active {
+  color: var(--color-primary);
+}
+
+.password-toggle ion-icon {
+  width: 20px;
+  height: 20px;
+}
+
+/* Checkbox Group */
+.form-checkbox-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 8px 0;
+}
+
+.form-checkbox-group input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  cursor: pointer;
+  accent-color: var(--color-primary);
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.checkbox-label {
+  font-size: 14px;
+  color: var(--color-text-light);
+  cursor: pointer;
+  line-height: 1.4;
+}
+
+.terms-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: opacity 200ms ease;
+}
+
+.terms-link:active {
+  opacity: 0.8;
+}
+
+/* Error Box */
+.error-box {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: 12px;
+  padding: 12px;
+  margin: 8px 0 4px 0;
+  animation: slideDown 200ms ease;
+}
+
+@media (prefers-color-scheme: dark) {
+  .error-box {
+    background: rgba(239, 68, 68, 0.15);
+    border-color: rgba(239, 68, 68, 0.4);
+  }
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.error-text {
+  font-size: 14px;
+  color: #DC2626;
+  margin: 0;
+  line-height: 1.4;
+}
+
+@media (prefers-color-scheme: dark) {
+  .error-text {
+    color: #F87171;
+  }
+}
+
+/* Submit Button */
+.register-submit-btn {
+  --background: var(--color-primary);
+  --background-hover: var(--color-primary-hover);
+  --background-focused: var(--color-primary-hover);
+  --background-activated: var(--color-primary-hover);
+  --background-disabled: var(--color-primary);
+  --color: var(--color-white);
+  height: 56px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 16px;
+  margin-top: 8px;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  text-transform: none;
+  letter-spacing: normal;
+  transition: all 200ms ease;
+}
+
+.register-submit-btn:disabled {
+  opacity: 0.6;
+}
+
+.register-submit-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+/* Loading State */
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.loading-state ion-spinner {
+  width: 20px;
+  height: 20px;
+}
+
+/* Divider */
+.divider {
+  position: relative;
+  width: 100%;
+  margin: 24px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-light);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 600;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
+
+@media (prefers-color-scheme: dark) {
+  .divider::before,
+  .divider::after {
+    background: var(--color-border-dark);
+  }
+}
+
+.divider span {
+  padding: 0 12px;
+  background: var(--color-white);
+  z-index: 1;
+
+  @media (prefers-color-scheme: dark) {
+    background: var(--color-light);
+  }
+}
+
+/* Social Buttons */
+.social-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.social-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 48px;
+  border: 1px solid var(--color-border);
+  background: var(--color-white);
+  color: var(--color-text-dark);
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 200ms ease;
+  -webkit-tap-highlight-color: transparent;
+
+  @media (prefers-color-scheme: dark) {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: var(--color-border-dark);
+    color: var(--color-text-dark);
+  }
+}
+
+.social-btn:active {
+  background: rgba(37, 99, 235, 0.05);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  transform: scale(0.98);
+}
+
+.social-btn svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* Sign Up Footer */
+.signup-footer {
+  text-align: center;
+  padding: 16px 0 32px 0;
+  border-top: 1px solid var(--color-border);
+
+  @media (prefers-color-scheme: dark) {
+    border-top-color: var(--color-border-dark);
+  }
+}
+
+.signup-footer p {
+  font-size: 14px;
+  color: var(--color-text-light);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.login-link {
+  color: var(--color-primary);
+  text-decoration: none;
+  font-weight: 600;
+  transition: opacity 200ms ease;
+  margin-left: 4px;
+}
+
+.login-link:active {
+  opacity: 0.8;
+}
+
+/* Safe Area Support */
+@supports (padding: max(0px)) {
+  .register-form-container {
+    padding-bottom: max(24px, env(safe-area-inset-bottom));
+  }
+}
+
+/* Responsive Design */
+@media (max-height: 600px) {
+  .register-hero {
+    height: 120px;
+    padding-bottom: 30px;
+  }
+
+  .register-form-container {
+    margin-top: 30px;
+  }
+}

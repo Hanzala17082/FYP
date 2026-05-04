@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "python3 manage.py runserver 0.0.0.0:8000",
-    "migrate": "python3 manage.py migrate"
+    "dev": "source venv/bin/activate && DATABASE_URL=\"\" python3 manage.py runserver 0.0.0.0:8000",
+    "migrate": "source venv/bin/activate && DATABASE_URL=\"\" python3 manage.py migrate"
   }
 }

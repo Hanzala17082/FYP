@@ -38,7 +38,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(null);
         clearTokens();
       }
-    } catch {
+    } catch (error) {
+      console.error('Token refresh failed:', error);
       setUser(null);
       clearTokens();
     } finally {
@@ -51,13 +52,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, [loadUser]);
 
   const login = useCallback(async (email: string, password: string, role: string) => {
-    const res = await api<AuthResponseDTO>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password, role }),
-    });
-    if (!res.data?.accessToken) throw new Error('Login failed');
-    setTokens(res.data.accessToken, res.data.refreshToken);
-    setUser(res.data.user);
+    try {
+      console.log('Logging in with:', { email, role });
+      const res = await api<AuthResponseDTO>('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({ email, password, role }),
+      });
+      console.log('Login response:', res);
+      if (!res.data?.accessToken) throw new Error('Login failed - no token received');
+      setTokens(res.data.accessToken, res.data.refreshToken);
+      setUser(res.data.user);
+      console.log('Login successful, user set:', res.data.user);
+    } catch (error) {
+      console.error('Login error:', error);
+      throw error;
+    }
   }, []);
 
   const logout = useCallback(() => {
