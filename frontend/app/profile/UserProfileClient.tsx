@@ -9,6 +9,7 @@ import { LogoutButton } from '@/shared/components/auth/LogoutButton'
 import { ThemeToggle } from '@/shared/components/ui/ThemeToggle'
 import { NavButton } from '@/shared/components/navigation'
 import { ROUTES, USER_ROLES } from '@/config/constants'
+import { getErrorMessage } from '@/shared/utils/error-message'
 import { dashboardService } from '@/services/dashboard.service'
 import { bookingsService } from '@/services/bookings.service'
 import { agenciesService } from '@/services/agencies.service'
@@ -602,7 +603,7 @@ export default function UserProfileClient() {
                     setAgencyTrips(res.data?.trips ?? [])
                   }
                 } catch (e) {
-                  alert((e as any)?.response?.data?.message ?? 'Failed to create trip.')
+                  alert(getErrorMessage(e, 'Failed to create trip.'))
                   return
                 }
                 setIsAddingTrip(false)
@@ -1047,7 +1048,7 @@ export default function UserProfileClient() {
         <Button
           variant="outline"
           className="w-full md:w-auto border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-          onClick={logout}
+          onClick={() => void logout()}
         >
           <span className="material-symbols-outlined text-[18px]">logout</span>
           Log Out

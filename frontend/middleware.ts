@@ -1,12 +1,18 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import { isSupabaseConfigured, SUPABASE_ENV_HINT } from '@/shared/lib/supabase/env'
+import { updateSession } from '@/shared/lib/supabase/middleware'
 
-/**
- * Allow all page requests through. Auth and redirects are handled client-side
- * so that pages always load and users are not blocked from "opening" any URL.
- */
-export function middleware(request: NextRequest) {
-  return NextResponse.next()
+/** Refresh Supabase Auth cookies on navigation (SSR pattern). */
+export async function middleware(request: NextRequest) {
+  if (!isSupabaseConfigured()) {
+    if (process.env.NODE_ENV === 'development') {
+      console.warn(`[REHNUM] Supabase env incomplete — skipping session refresh. ${SUPABASE_ENV_HINT}`)
+      return NextResponse.next()
+    }
+    throw new Error(`Supabase is not configured for production. ${SUPABASE_ENV_HINT}`)
+  }
+  return await updateSession(request)
 }
 
 export const config = {

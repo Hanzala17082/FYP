@@ -11,6 +11,7 @@ import { NavButton } from '@/shared/components/navigation'
 import { useAuth } from '@/shared/contexts/AuthContext'
 import { ROUTES, USER_ROLES } from '@/config/constants'
 import { tripsService } from '@/services/trips.service'
+import { getErrorMessage } from '@/shared/utils/error-message'
 import type { TripDTO } from '@/types/api/trips.types'
 
 /** Server-side pagination: only this many trips per request; backend returns one page at a time. */
@@ -202,11 +203,10 @@ export default function TripListingsClient() {
         setTotalTrips(typeof payload?.total === 'number' ? payload.total : 0)
         setTotalPages(typeof payload?.totalPages === 'number' ? payload.totalPages : 1)
       })
-      .catch((err) => {
-        if (signal.aborted || err?.name === 'AbortError') return
-        setTripsError(
-          err?.response?.data?.message ?? err?.message ?? 'Failed to load trips'
-        )
+      .catch((err: unknown) => {
+        if (signal.aborted || (err && typeof err === 'object' && (err as { name?: string }).name === 'AbortError'))
+          return
+        setTripsError(getErrorMessage(err, 'Failed to load trips'))
       })
       .finally(() => {
         if (!signal.aborted) setTripsLoading(false)
@@ -357,6 +357,26 @@ export default function TripListingsClient() {
         <div className="flex flex-col gap-5 p-4 md:p-8 md:grid md:grid-cols-2 lg:grid-cols-3 md:gap-6">
           {tripsLoading && <p className="text-slate-500 dark:text-slate-400 col-span-full">Loading trips…</p>}
           {tripsError && <p className="text-red-500 dark:text-red-400 col-span-full">{tripsError}</p>}
+          {!tripsLoading && !tripsError && trips.length === 0 && (
+            <div className="col-span-full rounded-2xl border border-slate-200 dark:border-border-dark bg-white dark:bg-card-dark px-6 py-8 text-center space-y-2">
+              <p className="text-lg font-semibold text-slate-900 dark:text-white">No trips match</p>
+              <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto space-y-2">
+                <span className="block">
+                  Explore only shows <span className="font-medium">active</span> trips. Seed from the backend:{' '}
+                  <code className="rounded bg-slate-100 dark:bg-white/10 px-1.5 py-0.5 text-xs">
+                    python manage.py seed_explore_demo
+                  </code>
+                </span>
+                <span className="block text-xs text-slate-500 dark:text-slate-500">
+                  Seeded but still empty? Django bypasses RLS; the browser anon key does not. Run{' '}
+                  <code className="rounded bg-slate-100 dark:bg-white/10 px-1 py-0.5">
+                    REHNUM/supabase/scripts/ensure_explore_anon_read.sql
+                  </code>{' '}
+                  in the Supabase SQL Editor.
+                </span>
+              </p>
+            </div>
+          )}
           {!tripsLoading &&
             trips.map((trip) => (
               <TripCardItem

@@ -11,6 +11,7 @@ import { setAuthCookies, getLoginRedirectRoute } from '@/shared/utils/auth'
 import { ROUTES } from '@/config/constants'
 import { authService } from '@/services/auth.service'
 import { User } from '@/types/entities/user.entity'
+import { getErrorMessage } from '@/shared/utils/error-message'
 
 export default function LoginPage() {
   const [role, setRole] = useState<'Traveler' | 'Agency'>('Traveler')
@@ -66,9 +67,8 @@ export default function LoginPage() {
       setAuthCookies(user, payload.accessToken)
       login(user, payload.accessToken)
       router.push(getLoginRedirectRoute(user.role))
-    } catch (err: any) {
-      const msg = err.response?.data?.message ?? err.message ?? 'Invalid email or password. Please check your credentials.'
-      setError(msg)
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Invalid email or password. Please check your credentials.'))
     } finally {
       setIsLoading(false)
     }

@@ -35,14 +35,22 @@ export default function TravelerProfileClient({ travelerId }: TravelerProfileCli
   const [bookings, setBookings] = useState<BookingDTO[]>([])
   const [loading, setLoading] = useState(true)
   const isOwner = !!currentUser && currentUser.id === travelerId
+  const canSeeBookings =
+    !!currentUser &&
+    (isOwner || currentUser.role === 'Admin' || currentUser.role === 'Agency')
 
   const storageKeyPrefix = `travelerTripPhotos:${travelerId}:`
   const [tripPhotos, setTripPhotos] = useState<Record<string, string[]>>({})
 
   useEffect(() => {
     Promise.all([
-      usersService.getUserById(travelerId).catch(() => null),
-      bookingsService.getBookings({ traveler_id: travelerId }).then((res) => res.data?.bookings ?? []),
+      usersService
+        .getUserById(travelerId)
+        .then((res) => res.data)
+        .catch(() => null),
+      canSeeBookings
+        ? bookingsService.getBookings({ traveler_id: travelerId }).then((res) => res.data?.bookings ?? [])
+        : Promise.resolve([] as BookingDTO[]),
     ])
       .then(([userData, bookingsList]) => {
         if (userData) {
@@ -68,7 +76,7 @@ export default function TravelerProfileClient({ travelerId }: TravelerProfileCli
       })
       .catch(() => setProfile(null))
       .finally(() => setLoading(false))
-  }, [travelerId])
+  }, [travelerId, canSeeBookings])
 
   useEffect(() => {
     if (typeof window === 'undefined' || bookings.length === 0) return

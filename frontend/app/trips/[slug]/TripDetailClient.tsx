@@ -11,6 +11,7 @@ import { ROUTES, USER_ROLES } from '@/config/constants'
 import { useAuth } from '@/shared/contexts/AuthContext'
 import { cn } from '@/shared/utils/cn'
 import { tripsService } from '@/services/trips.service'
+import { getErrorMessage } from '@/shared/utils/error-message'
 import type { TripDTO } from '@/types/api/trips.types'
 
 interface TripDetailClientProps {
@@ -40,7 +41,8 @@ export default function TripDetailClient({ slug: slugProp }: TripDetailClientPro
   const [showAuthModal, setShowAuthModal] = useState(false)
 
   useEffect(() => {
-    const effectiveSlug = (slug ?? params?.slug ?? '').trim()
+    const rawSlug = slug ?? params?.slug
+    const effectiveSlug = (Array.isArray(rawSlug) ? rawSlug[0] : rawSlug)?.trim() ?? ''
     if (!effectiveSlug) {
       setLoading(false)
       setError('Invalid trip URL.')
@@ -65,13 +67,10 @@ export default function TripDetailClient({ slug: slugProp }: TripDetailClientPro
         if (tripPayload) setTrip(tripPayload as TripDTO)
         else setError('Trip not found.')
       })
-      .catch((err) => {
+      .catch((err: unknown) => {
         if (!cancelled) {
-          const status = err?.response?.status
-          setApiStatus(status ?? 0)
-          const msg = err?.response?.data?.message || err?.message || 'Failed to load trip.'
-          const isHtml = typeof err?.response?.data === 'string' && err.response.data?.startsWith?.('<!')
-          setError(isHtml ? 'Backend returned HTML instead of JSON. Use your Django URL (e.g. http://localhost:8000/api/trips/...), not Postman.' : msg)
+          setApiStatus(0)
+          setError(getErrorMessage(err, 'Failed to load trip.'))
         }
       })
       .finally(() => {

@@ -17,6 +17,8 @@ export interface TripDTO {
   endDate: string
   status: 'active' | 'pending' | 'completed' | 'cancelled'
   tags: string[]
+  /** Optional listing field (UI placeholder when backend adds it). */
+  maxTravelers?: number
   createdAt: string
   updatedAt: string
   highlights?: string[]
@@ -42,9 +44,13 @@ export interface TripFiltersDTO {
   agencyId?: string
   sortBy?: 'price' | 'date' | 'rating' | 'popularity'
   sortOrder?: 'asc' | 'desc'
+  page?: number
+  limit?: number
 }
 
 export interface CreateTripRequestDTO {
+  /** Required when creating as Admin (Django parity). */
+  agencyId?: string
   title: string
   description: string
   shortDescription: string

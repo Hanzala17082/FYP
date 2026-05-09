@@ -19,7 +19,7 @@ export default function Error({
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-background-light dark:bg-background-dark p-6">
       <div className="max-w-md w-full text-center space-y-6">
-        <Logo variant="default" />
+        <Logo variant="dark" />
         <div className="space-y-4">
           <h1 className="text-4xl font-bold text-slate-900 dark:text-white">
             Something went wrong!

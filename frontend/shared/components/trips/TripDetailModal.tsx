@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { Button, StatusBadge, Avatar, RoundedBox } from '@/shared/components/ui'
 import { tripsService } from '@/services/trips.service'
+import { getErrorMessage } from '@/shared/utils/error-message'
 import type { TripDTO } from '@/types/api/trips.types'
 
 function formatDate(value: string | null | undefined): string {
@@ -40,8 +41,8 @@ export function TripDetailModal({ slug, isOpen, onClose }: TripDetailModalProps)
       .then((res) => {
         if (res.data) setTrip(res.data)
       })
-      .catch((err) => {
-        setError(err?.response?.data?.message || 'Trip not found.')
+      .catch((err: unknown) => {
+        setError(getErrorMessage(err, 'Trip not found.'))
       })
       .finally(() => {
         setLoading(false)

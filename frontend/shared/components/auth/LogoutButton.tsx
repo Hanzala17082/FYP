@@ -23,7 +23,7 @@ export function LogoutButton({ variant = 'icon', className, showText = false }: 
     try {
       // Small delay for better UX
       await new Promise((resolve) => setTimeout(resolve, 300))
-      logout()
+      await logout()
     } catch (error) {
       console.error('Logout error:', error)
       setIsLoggingOut(false)

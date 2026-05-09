@@ -10,6 +10,7 @@ import { useAuth } from '@/shared/contexts/AuthContext'
 import { setAuthCookies } from '@/shared/utils/auth'
 import { ROUTES } from '@/config/constants'
 import { authService } from '@/services/auth.service'
+import { getErrorMessage } from '@/shared/utils/error-message'
 import { User } from '@/types/entities/user.entity'
 
 export default function AdminLoginPage() {
@@ -86,10 +87,9 @@ export default function AdminLoginPage() {
       setAuthCookies(user, payload.accessToken)
       login(user, payload.accessToken)
       router.push(ROUTES.DASHBOARD.ADMIN)
-    } catch (err: any) {
-      const status = err.response?.status
-      let msg = err.response?.data?.message ?? err.message ?? 'Invalid admin credentials. Please check your email and password.'
-      if (status === 401) {
+    } catch (err: unknown) {
+      let msg = getErrorMessage(err, 'Invalid admin credentials. Please check your email and password.')
+      if (/invalid login credentials|invalid email or password/i.test(msg)) {
         msg += ' Check admin email/password and that an admin user exists in the database.'
       }
       setError(msg)

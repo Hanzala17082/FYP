@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Header } from '@/shared/components/layout'
-import { StatCard, ThemeToggle } from '@/shared/components/ui'
+import { Avatar, StatCard, ThemeToggle } from '@/shared/components/ui'
 import { SectionHeader } from '@/shared/components/ui'
 import { RoundedBox } from '@/shared/components/ui/RoundedBox'
 import { Button } from '@/shared/components/ui/Button'

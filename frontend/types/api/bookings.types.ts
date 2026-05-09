@@ -19,7 +19,7 @@ export interface BookingDTO {
   startDate: string
   endDate: string
   numberOfTravelers: number
-  status: 'pending' | 'confirmed' | 'cancelled' | 'completed'
+  status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'rejected'
   specialRequests?: string
   createdAt: string
   updatedAt: string

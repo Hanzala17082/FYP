@@ -4,6 +4,11 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, UserRole } from '@/types/entities/user.entity'
 import { USER_ROLES, ROUTES } from '@/config/constants'
 import { setAuthCookies, clearAuthCookies } from '@/shared/utils/auth'
+import type { Session } from '@supabase/supabase-js'
+import { createBrowserSupabaseClient } from '@/shared/lib/supabase/client'
+import { isSupabaseConfigured, SUPABASE_ENV_HINT } from '@/shared/lib/supabase/env'
+import { fetchUserDTO, userDtoToEntity } from '@/shared/lib/supabase/profile'
+import { authService } from '@/services/auth.service'
 
 interface AuthContextType {
   user: User | null
@@ -11,7 +16,7 @@ interface AuthContextType {
   isAuthenticated: boolean
   isLoading: boolean
   login: (user: User, token: string) => void
-  logout: () => void
+  logout: () => Promise<void>
   setUser: (user: User | null) => void
   hasRole: (role: UserRole) => boolean
   canAccess: (path: string) => boolean
@@ -19,43 +24,99 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+const VALID_ROLES: UserRole[] = ['Admin', 'Agency', 'Traveler']
+
+function isValidRole(role: unknown): role is UserRole {
+  return typeof role === 'string' && VALID_ROLES.includes(role as UserRole)
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUserState] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
 
-  // Load user from localStorage on mount and sync cookies
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedUser = localStorage.getItem('user')
-      const token = localStorage.getItem('accessToken')
-      
-      if (storedUser && token) {
-        try {
-          const parsedUser = JSON.parse(storedUser)
-          // Validate user role before setting
-          const validRoles = ['Admin', 'Agency', 'Traveler']
-          if (!parsedUser.role || !validRoles.includes(parsedUser.role)) {
-            console.error('Invalid user role detected:', parsedUser.role)
-            localStorage.removeItem('user')
-            localStorage.removeItem('accessToken')
-            clearAuthCookies()
-            setIsLoading(false)
-            return
-          }
-          setUserState(parsedUser)
-          // Ensure cookies are in sync with localStorage
-          setAuthCookies(parsedUser, token)
-        } catch (error) {
-          console.error('Error parsing user from localStorage:', error)
+    if (!isSupabaseConfigured()) {
+      console.warn(`[REHNUM] Supabase env incomplete — not hydrating auth. ${SUPABASE_ENV_HINT}`)
+      setIsLoading(false)
+      return
+    }
+
+    const sb = createBrowserSupabaseClient()
+
+    async function applySession(session: Session | null) {
+      if (!session?.user) {
+        setUserState(null)
+        if (typeof window !== 'undefined') {
           localStorage.removeItem('user')
           localStorage.removeItem('accessToken')
+          localStorage.removeItem('refreshToken')
           clearAuthCookies()
         }
-      } else {
-        // If no user in localStorage, clear cookies to prevent stale auth
-        clearAuthCookies()
+        return
       }
-      setIsLoading(false)
+
+      try {
+        const dto = await fetchUserDTO(session.user.id)
+        if (!isValidRole(dto.role)) {
+          console.error('Invalid user role detected:', dto.role)
+          await sb.auth.signOut()
+          setUserState(null)
+          if (typeof window !== 'undefined') {
+            localStorage.removeItem('user')
+            localStorage.removeItem('accessToken')
+            localStorage.removeItem('refreshToken')
+            clearAuthCookies()
+          }
+          return
+        }
+
+        const appUser = userDtoToEntity(dto)
+        setUserState(appUser)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('user', JSON.stringify(appUser))
+          localStorage.setItem('accessToken', session.access_token)
+          if (session.refresh_token) {
+            localStorage.setItem('refreshToken', session.refresh_token)
+          }
+          setAuthCookies(appUser, session.access_token)
+        }
+      } catch (e) {
+        console.error('Auth hydration failed:', e)
+        await sb.auth.signOut()
+        setUserState(null)
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('user')
+          localStorage.removeItem('accessToken')
+          localStorage.removeItem('refreshToken')
+          clearAuthCookies()
+        }
+      }
+    }
+
+    let cancelled = false
+
+    void (async () => {
+      setIsLoading(true)
+      const {
+        data: { session },
+      } = await sb.auth.getSession()
+      if (cancelled) return
+      await applySession(session)
+      if (!cancelled) setIsLoading(false)
+    })()
+
+    const {
+      data: { subscription },
+    } = sb.auth.onAuthStateChange((_event, session) => {
+      void (async () => {
+        await applySession(session)
+        setIsLoading(false)
+      })()
+    })
+
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
     }
   }, [])
 
@@ -64,18 +125,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('user', JSON.stringify(userData))
       localStorage.setItem('accessToken', token)
-      // Always set cookies when logging in to keep them in sync
       setAuthCookies(userData, token)
     }
   }
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await authService.logout()
+    } catch (e) {
+      console.error('Supabase signOut:', e)
+    }
     setUserState(null)
     if (typeof window !== 'undefined') {
       localStorage.removeItem('user')
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
-      // Clear cookies using utility function
       clearAuthCookies()
       window.location.href = ROUTES.LOGIN
     }
@@ -88,7 +152,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         localStorage.setItem('user', JSON.stringify(userData))
         const token = localStorage.getItem('accessToken')
         if (token) {
-          // Sync cookies when user is updated
           setAuthCookies(userData, token)
         }
       } else {
@@ -100,16 +163,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const hasRole = (role: UserRole): boolean => {
     if (!user) return false
-    // Validate role matches expected values
-    const validRoles: UserRole[] = ['Admin', 'Agency', 'Traveler']
-    if (!validRoles.includes(user.role)) return false
+    if (!VALID_ROLES.includes(user.role)) return false
     return user.role === role
   }
 
   const canAccess = (path: string): boolean => {
     if (!user) return false
 
-    // Public routes that everyone can access
     const publicRoutes = [
       ROUTES.HOME,
       ROUTES.LOGIN,
@@ -123,7 +183,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return true
     }
 
-    // Role-based route access
     if (path.startsWith(ROUTES.DASHBOARD.ADMIN)) {
       return user.role === USER_ROLES.ADMIN
     }
@@ -136,7 +195,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return user.role === USER_ROLES.TRAVELER
     }
 
-    // Default: allow access if authenticated
     return true
   }
 

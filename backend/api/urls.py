@@ -4,7 +4,10 @@ Support both with and without trailing slash (frontend calls e.g. /api/trips?lim
 """
 from django.urls import path, include
 
+from . import views
+
 urlpatterns = [
+    path('', views.ApiRootView.as_view()),
     path('auth/', include('users.urls')),
     path('auth', include('users.urls')),
     path('trips/', include('trips.urls')),

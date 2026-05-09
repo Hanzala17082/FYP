@@ -195,7 +195,7 @@ export default function TravelerDashboardClient() {
               imageHeight="sm"
             />
           ))}
-          <ImageCard variant="add" onClick={() => {}} />
+          <ImageCard variant="add" title="Add" onClick={() => {}} />
         </div>
       </section>
 

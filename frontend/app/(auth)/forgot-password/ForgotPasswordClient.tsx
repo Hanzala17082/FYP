@@ -6,6 +6,7 @@ import { Logo } from '@/shared/components/layout/Logo'
 import { Button } from '@/shared/components/ui/Button'
 import { ThemeToggle } from '@/shared/components/ui/ThemeToggle'
 import { authService } from '@/services/auth.service'
+import { getErrorMessage } from '@/shared/utils/error-message'
 
 export default function ForgotPasswordClient() {
   const [email, setEmail] = useState('')
@@ -20,8 +21,8 @@ export default function ForgotPasswordClient() {
     try {
       await authService.forgotPassword({ email })
       setIsSubmitted(true)
-    } catch (err: any) {
-      setError(err.response?.data?.message ?? err.message ?? 'Something went wrong. Please try again.')
+    } catch (err: unknown) {
+      setError(getErrorMessage(err, 'Something went wrong. Please try again.'))
     } finally {
       setIsLoading(false)
     }
