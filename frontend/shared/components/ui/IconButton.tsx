@@ -35,7 +35,7 @@ export function IconButton({
   return (
     <button
       className={cn(
-        'relative flex items-center justify-center rounded-full transition-colors',
+        'relative flex items-center justify-center rounded-none transition-colors',
         variantClasses[variant],
         sizeClasses[size],
         className
@@ -46,7 +46,7 @@ export function IconButton({
       {badge && (
         <span
           className={cn(
-            'absolute rounded-full bg-red-500 border-2',
+            'absolute rounded-none bg-red-500 border-2',
             size === 'sm' ? 'top-1 right-1 size-2' : 'top-2 right-2 size-2.5',
             variant === 'default' ? 'border-white dark:border-slate-800' : 'border-white'
           )}

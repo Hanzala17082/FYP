@@ -53,7 +53,7 @@ export function TripReviewCard({ review }: TripReviewCardProps) {
               {review.images.map((image, index) => (
                 <div
                   key={index}
-                  className="aspect-square rounded-lg overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
+                  className="aspect-square rounded-none overflow-hidden cursor-pointer hover:opacity-80 transition-opacity"
                 >
                   <img
                     src={image}

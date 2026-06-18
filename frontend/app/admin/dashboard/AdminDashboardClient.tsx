@@ -9,6 +9,7 @@ import { Button } from '@/shared/components/ui/Button'
 import { LogoutButton } from '@/shared/components/auth/LogoutButton'
 import { NavButton } from '@/shared/components/navigation'
 import { dashboardService } from '@/services/dashboard.service'
+import { useCurrency } from '@/shared/contexts/CurrencyContext'
 import { ROUTES } from '@/config/constants'
 import Link from 'next/link'
 
@@ -32,14 +33,14 @@ function DetailModal({
       onClick={onClose}
     >
       <div
-        className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
+        className="bg-white dark:bg-slate-800 rounded-none shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between rounded-t-2xl">
+        <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between rounded-none">
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{title}</h2>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors"
+            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-none transition-colors"
           >
             <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">close</span>
           </button>
@@ -51,6 +52,7 @@ function DetailModal({
 }
 
 export default function AdminDashboardClient() {
+  const { formatPrice } = useCurrency()
   const [selectedModal, setSelectedModal] = useState<'users' | 'trips' | 'agencies' | 'verified' | 'basic' | null>(null)
   const [stats, setStats] = useState({
     totalUsers: 0,
@@ -106,7 +108,7 @@ export default function AdminDashboardClient() {
             agency: t.agency?.name ?? '',
             status: t.status ?? 'active',
             bookings: t.reviewCount ?? 0,
-            price: `$${t.price ?? 0}`,
+            price: formatPrice(Number(t.price ?? 0)),
           }))
         )
         setAgencies(
@@ -188,7 +190,7 @@ export default function AdminDashboardClient() {
             <StatCard
               title="Total Bookings"
               value={stats.totalBookings.toLocaleString()}
-              subtitle={`$${(stats.revenue / 1000).toFixed(0)}k revenue`}
+              subtitle={`${formatPrice(stats.revenue)} revenue`}
               icon={<span className="material-symbols-outlined">bookmark</span>}
               trend={{ value: '+18%', isPositive: true }}
             />
@@ -245,7 +247,7 @@ export default function AdminDashboardClient() {
             </RoundedBox>
             <RoundedBox padding="md" className="text-center">
               <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Revenue Today</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">$12.4k</p>
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">{formatPrice(1_240_000)}</p>
             </RoundedBox>
           </div>
         </section>
@@ -258,10 +260,10 @@ export default function AdminDashboardClient() {
               {recentUsers.map((user) => (
                 <div
                   key={user.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                  className="flex items-center justify-between p-3 rounded-none bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-none bg-primary/10 flex items-center justify-center">
                       <span className="material-symbols-outlined text-primary">person</span>
                     </div>
                     <div>
@@ -271,7 +273,7 @@ export default function AdminDashboardClient() {
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-slate-500 dark:text-slate-400">{user.joined}</p>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-none text-xs font-semibold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
                       {user.status}
                     </span>
                   </div>
@@ -286,10 +288,10 @@ export default function AdminDashboardClient() {
               {recentTrips.map((trip) => (
                 <div
                   key={trip.id}
-                  className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
+                  className="flex items-center justify-between p-3 rounded-none bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+                    <div className="w-10 h-10 rounded-none bg-blue-500/10 flex items-center justify-center">
                       <span className="material-symbols-outlined text-blue-500">flight_takeoff</span>
                     </div>
                     <div>
@@ -332,10 +334,10 @@ export default function AdminDashboardClient() {
               {recentUsers.map((user) => (
                 <div
                   key={user.id}
-                  className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
+                  className="flex items-center justify-between p-4 rounded-none border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-none bg-primary/10 flex items-center justify-center">
                       <span className="material-symbols-outlined text-primary text-xl">person</span>
                     </div>
                     <div>
@@ -344,10 +346,10 @@ export default function AdminDashboardClient() {
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
-                    <span className="px-3 py-1 rounded-full text-sm font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
+                    <span className="px-3 py-1 rounded-none text-sm font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
                       {user.role}
                     </span>
-                    <span className="px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
+                    <span className="px-3 py-1 rounded-none text-sm font-semibold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
                       {user.status}
                     </span>
                   </div>
@@ -386,10 +388,10 @@ export default function AdminDashboardClient() {
               {recentTrips.map((trip) => (
                 <div
                   key={trip.id}
-                  className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
+                  className="flex items-center justify-between p-4 rounded-none border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
                 >
                   <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-full bg-blue-500/10 flex items-center justify-center">
+                    <div className="w-12 h-12 rounded-none bg-blue-500/10 flex items-center justify-center">
                       <span className="material-symbols-outlined text-blue-500 text-xl">flight_takeoff</span>
                     </div>
                     <div>
@@ -402,7 +404,7 @@ export default function AdminDashboardClient() {
                       <p className="text-sm font-semibold text-slate-900 dark:text-white">{trip.price}</p>
                       <p className="text-xs text-slate-500 dark:text-slate-400">{trip.bookings} bookings</p>
                     </div>
-                    <span className="px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
+                    <span className="px-3 py-1 rounded-none text-sm font-semibold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
                       {trip.status}
                     </span>
                   </div>
@@ -442,7 +444,7 @@ export default function AdminDashboardClient() {
                 <Link
                   key={agency.id}
                   href={`/admin/agencies/${agency.id}`}
-                  className="flex items-center justify-between p-4 rounded-xl border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer"
+                  className="flex items-center justify-between p-4 rounded-none border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer"
                 >
                   <div className="flex items-center gap-4">
                     <Avatar src={agency.avatar} name={agency.name} size="md" />
@@ -463,7 +465,7 @@ export default function AdminDashboardClient() {
                       <p className="text-xs text-slate-500 dark:text-slate-400">Joined {agency.joined}</p>
                     </div>
                     <span
-                      className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                      className={`px-3 py-1 rounded-none text-sm font-semibold ${
                         agency.status === 'Verified'
                           ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'
                           : 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400'
@@ -504,7 +506,7 @@ export default function AdminDashboardClient() {
                   <Link
                     key={agency.id}
                     href={`/admin/agencies/${agency.id}`}
-                    className="flex items-center justify-between p-4 rounded-xl border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-500/5 hover:bg-emerald-100/50 dark:hover:bg-emerald-500/10 transition-colors cursor-pointer"
+                    className="flex items-center justify-between p-4 rounded-none border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-500/5 hover:bg-emerald-100/50 dark:hover:bg-emerald-500/10 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-4">
                       <Avatar src={agency.avatar} name={agency.name} size="md" />
@@ -524,7 +526,7 @@ export default function AdminDashboardClient() {
                         <p className="text-sm font-semibold text-slate-900 dark:text-white">{agency.trips} active trips</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">Joined {agency.joined}</p>
                       </div>
-                      <span className="px-3 py-1 rounded-full text-sm font-semibold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
+                      <span className="px-3 py-1 rounded-none text-sm font-semibold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
                         <span className="material-symbols-outlined text-sm">verified</span>
                         Verified
                       </span>
@@ -557,7 +559,7 @@ export default function AdminDashboardClient() {
                   <Link
                     key={agency.id}
                     href={`/admin/agencies/${agency.id}`}
-                    className="flex items-center justify-between p-4 rounded-xl border border-amber-200 dark:border-amber-500/20 bg-amber-50/50 dark:bg-amber-500/5 hover:bg-amber-100/50 dark:hover:bg-amber-500/10 transition-colors cursor-pointer"
+                    className="flex items-center justify-between p-4 rounded-none border border-amber-200 dark:border-amber-500/20 bg-amber-50/50 dark:bg-amber-500/5 hover:bg-amber-100/50 dark:hover:bg-amber-500/10 transition-colors cursor-pointer"
                   >
                     <div className="flex items-center gap-4">
                       <Avatar src={agency.avatar} name={agency.name} size="md" />
@@ -577,7 +579,7 @@ export default function AdminDashboardClient() {
                         <p className="text-sm font-semibold text-slate-900 dark:text-white">{agency.trips} trips</p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">Joined {agency.joined}</p>
                       </div>
-                      <span className="px-3 py-1 rounded-full text-sm font-semibold bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400">
+                      <span className="px-3 py-1 rounded-none text-sm font-semibold bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400">
                         Basic
                       </span>
                       <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">

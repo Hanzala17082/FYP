@@ -207,7 +207,7 @@ export default function TravelerProfileClient({ travelerId }: TravelerProfileCli
                 const userPics = tripPhotos[trip.id] || []
                 const cover = userPics[0] || trip.images?.[0]
                 return (
-                  <div key={trip.id} className="border border-slate-200 dark:border-slate-700 rounded-2xl overflow-hidden">
+                  <div key={trip.id} className="border border-slate-200 dark:border-slate-700 rounded-none overflow-hidden">
                     <div className="flex flex-col md:flex-row">
                       <div className="relative md:w-64 w-full h-44 bg-slate-100 dark:bg-slate-800">
                         {cover ? (
@@ -233,7 +233,7 @@ export default function TravelerProfileClient({ travelerId }: TravelerProfileCli
                         {userPics.length > 0 && (
                           <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
                             {userPics.slice(0, 6).map((src, idx) => (
-                              <div key={idx} className="aspect-square rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800">
+                              <div key={idx} className="aspect-square rounded-none overflow-hidden bg-slate-100 dark:bg-slate-800">
                                 {/* eslint-disable-next-line @next/next/no-img-element */}
                                 <img src={src} alt={`Trip photo ${idx + 1}`} className="w-full h-full object-cover" />
                               </div>
@@ -282,7 +282,7 @@ export default function TravelerProfileClient({ travelerId }: TravelerProfileCli
                               />
                               <label
                                 htmlFor={`upload-${trip.id}`}
-                                className="inline-flex items-center gap-2 h-9 px-3 rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer text-sm font-semibold"
+                                className="inline-flex items-center gap-2 h-9 px-3 rounded-none border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-700 dark:text-white hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors cursor-pointer text-sm font-semibold"
                               >
                                 <span className="material-symbols-outlined text-[18px]">add_photo_alternate</span>
                                 Add Photos

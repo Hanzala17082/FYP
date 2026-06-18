@@ -4,6 +4,7 @@ import './globals.css'
 import { generateMetadata as genMeta } from '@/shared/utils/seo'
 import { ThemeProvider } from '@/shared/contexts/ThemeContext'
 import { AuthProvider } from '@/shared/contexts/AuthContext'
+import { CurrencyProvider } from '@/shared/contexts/CurrencyContext'
 import { ContentWrapper } from '@/shared/components/layout/ContentWrapper'
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -24,17 +25,19 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className="dark">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <link
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
           rel="stylesheet"
         />
       </head>
-      <body className={`${plusJakarta.variable} font-display antialiased`}>
+      <body className={`${plusJakarta.variable} font-display antialiased bg-background-light dark:bg-background-dark`}>
         <ThemeProvider>
           <AuthProvider>
-            <ContentWrapper>{children}</ContentWrapper>
+            <CurrencyProvider>
+              <ContentWrapper>{children}</ContentWrapper>
+            </CurrencyProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

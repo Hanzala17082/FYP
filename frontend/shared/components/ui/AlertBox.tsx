@@ -39,14 +39,14 @@ export function AlertBox({
   return (
     <div
       className={cn(
-        'flex flex-col gap-3 rounded-2xl border p-4 shadow-sm',
+        'flex flex-col gap-3 rounded-none border p-4 shadow-sm',
         variantClasses[variant],
         className
       )}
     >
       <div className="flex items-start gap-3">
         {icon && (
-          <div className={cn('rounded-full p-2', iconColors[variant])}>{icon}</div>
+          <div className={cn('rounded-none p-2', iconColors[variant])}>{icon}</div>
         )}
         <div className="flex-1">
           <p className="text-slate-900 dark:text-white text-sm font-bold leading-tight mb-1">

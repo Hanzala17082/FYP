@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { cn } from '@/shared/utils/cn'
 import { RoundedBox } from './RoundedBox'
 import { IconButton } from './IconButton'
@@ -11,7 +12,9 @@ interface PastTripItemProps {
   className?: string
 }
 
-export function PastTripItem({
+export const PastTripItem = memo(PastTripItemInner)
+
+function PastTripItemInner({
   image,
   imageAlt,
   title,
@@ -26,7 +29,7 @@ export function PastTripItem({
       className={cn('flex items-center gap-4', className)}
     >
       <div
-        className="size-12 rounded-lg bg-cover bg-center shrink-0"
+        className="size-12 rounded-none bg-cover bg-center shrink-0"
         style={{ backgroundImage: `url('${image}')` }}
         role="img"
         aria-label={imageAlt || title}

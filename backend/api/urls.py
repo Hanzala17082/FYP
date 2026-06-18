@@ -20,4 +20,6 @@ urlpatterns = [
     path('reviews', include('reviews.urls')),
     path('dashboard/', include('dashboard.urls')),
     path('dashboard', include('dashboard.urls')),
+    path('chat/', include('chat.urls')),
+    path('chat', include('chat.urls')),
 ]

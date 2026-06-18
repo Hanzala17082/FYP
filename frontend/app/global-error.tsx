@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { logger } from '@/shared/utils/logger'
 
 export default function GlobalError({
   error,
@@ -11,7 +12,7 @@ export default function GlobalError({
 }) {
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error('Global error:', error)
+    logger.error('Global error:', error)
   }, [error])
 
   return (
@@ -29,13 +30,13 @@ export default function GlobalError({
               <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
                 <button
                   onClick={reset}
-                  className="px-6 py-3 bg-primary text-white rounded-xl font-semibold hover:bg-blue-600 transition-colors w-full sm:w-auto"
+                  className="px-6 py-3 bg-primary text-white rounded-none font-semibold hover:bg-blue-600 transition-colors w-full sm:w-auto"
                 >
                   Try again
                 </button>
                 <button
                   onClick={() => (window.location.href = '/')}
-                  className="px-6 py-3 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-xl font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors w-full sm:w-auto"
+                  className="px-6 py-3 border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 rounded-none font-semibold hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors w-full sm:w-auto"
                 >
                   Go home
                 </button>

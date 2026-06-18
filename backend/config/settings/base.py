@@ -29,6 +29,8 @@ env = environ.Env(
     SUPABASE_CONNECTION=(str, 'direct'),
     SUPABASE_POOLER_HOST=(str, ''),
     SUPABASE_POOLER_PORT=(str, '5432'),
+    SUPABASE_JWT_SECRET=(str, ''),
+    REDIS_URL=(str, ''),
 )
 
 SECRET_KEY = env('SECRET_KEY')
@@ -60,7 +62,11 @@ def _effective_database_url():
 
 _EFFECTIVE_DATABASE_URL = _effective_database_url()
 
+SUPABASE_JWT_SECRET = env('SUPABASE_JWT_SECRET', default='').strip()
+REDIS_URL = env('REDIS_URL', default='').strip()
+
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -79,6 +85,8 @@ INSTALLED_APPS = [
     'dashboard',
     'payments',
     'notifications',
+    'channels',
+    'chat',
 ]
 
 MIDDLEWARE = [
@@ -94,6 +102,19 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'config.urls'
 WSGI_APPLICATION = 'config.wsgi.application'
+ASGI_APPLICATION = 'config.asgi.application'
+
+if REDIS_URL:
+    CHANNEL_LAYERS = {
+        'default': {
+            'BACKEND': 'channels_redis.core.RedisChannelLayer',
+            'CONFIG': {'hosts': [REDIS_URL]},
+        }
+    }
+else:
+    CHANNEL_LAYERS = {
+        'default': {'BACKEND': 'channels.layers.InMemoryChannelLayer'},
+    }
 
 # Avoid 301 redirect on POST (e.g. /api/auth/login -> /api/auth/login/) which can break clients
 APPEND_SLASH = False

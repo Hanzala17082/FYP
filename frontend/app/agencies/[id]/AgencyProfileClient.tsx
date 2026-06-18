@@ -216,6 +216,7 @@ export default function AgencyProfileClient({ agencyId }: AgencyProfileClientPro
                     id={trip.id}
                     slug={trip.slug}
                     title={trip.title}
+                    destination={trip.destination}
                     agency={{
                       name: trip.agency?.name ?? 'Agency',
                       verified: trip.agency?.verified,

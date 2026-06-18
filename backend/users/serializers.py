@@ -1,9 +1,12 @@
 """
 Auth serializers. Output camelCase to match frontend DTOs.
 """
+import re
 from rest_framework import serializers
 from .models import User, TravelerProfile
 from vendors.models import Agency
+
+CNIC_PATTERN = re.compile(r'^\d{5}-\d{7}-\d{1}$')
 
 
 def user_to_dto(user: User) -> dict:
@@ -44,13 +47,22 @@ class RegisterSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True, min_length=8)
     confirmPassword = serializers.CharField(write_only=True, source='confirm_password')
     role = serializers.ChoiceField(choices=['Traveler', 'Agency'])
-    agreeToTerms = serializers.BooleanField(source='agree_to_terms')
+    agreeToTerms = serializers.BooleanField(source='agree_to_terms', required=False, default=True)
 
     def validate(self, attrs):
         if attrs.get('password') != attrs.get('confirm_password'):
             raise serializers.ValidationError({'confirmPassword': 'Passwords do not match.'})
-        if not attrs.get('agree_to_terms'):
+        if not attrs.get('agree_to_terms', True):
             raise serializers.ValidationError({'agreeToTerms': 'You must agree to the terms.'})
         if User.objects.filter(email=attrs['email']).exists():
             raise serializers.ValidationError({'email': 'A user with this email already exists.'})
+        role = attrs.get('role')
+        cnic = (attrs.get('cnic') or '').strip()
+        if role == 'Traveler':
+            if not cnic:
+                raise serializers.ValidationError({'cnic': 'CNIC is required for travelers.'})
+            if not CNIC_PATTERN.match(cnic):
+                raise serializers.ValidationError(
+                    {'cnic': 'Enter a valid CNIC in the format xxxxx-xxxxxxx-x (13 digits).'}
+                )
         return attrs

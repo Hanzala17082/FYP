@@ -15,3 +15,13 @@ CORS_ALLOWED_ORIGINS = [
     'http://localhost:5173',
     'http://127.0.0.1:5173',
 ]
+
+# Local fallback when Supabase is unreachable (e.g. paused project, DNS/IPv6 issues).
+USE_LOCAL_SQLITE = env.bool('USE_LOCAL_SQLITE', default=True)
+if USE_LOCAL_SQLITE:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }

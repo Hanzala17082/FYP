@@ -16,7 +16,7 @@ export function Card({ children, variant = 'default', className, ...props }: Car
   return (
     <div
       className={cn(
-        'rounded-2xl shadow-xl overflow-hidden',
+        'rounded-none shadow-xl overflow-hidden',
         variants[variant],
         className
       )}

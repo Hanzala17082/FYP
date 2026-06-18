@@ -4,6 +4,8 @@ import { useState, useEffect, useRef, useCallback, useMemo, memo } from 'react'
 import type { TripFiltersDTO, AgencyDTO } from '@/types/api/trips.types'
 import { agenciesService } from '@/services/agencies.service'
 import { cn } from '@/shared/utils/cn'
+import { useCurrency } from '@/shared/contexts/CurrencyContext'
+import { convertFromPkr, convertToPkr } from '@/shared/utils/currency-options'
 
 const DURATION_OPTIONS = [
   { value: '', label: 'Any duration' },
@@ -43,22 +45,23 @@ interface TripFiltersProps {
 }
 
 const INPUT_CLASS =
-  'w-full rounded-xl border border-slate-200/80 dark:border-slate-500/50 bg-white dark:bg-slate-700/80 px-4 py-2.5 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-400 focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all'
+  'w-full rounded-none border border-slate-200/80 dark:border-slate-500/50 bg-white dark:bg-slate-700/80 px-4 py-2.5 text-sm text-slate-800 dark:text-slate-100 placeholder:text-slate-400 dark:placeholder:text-slate-400 focus:ring-2 focus:ring-primary/30 focus:border-primary outline-none transition-all'
 const LABEL_CLASS =
   'block text-[11px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-2'
 const CHIP_BASE =
-  'inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-all duration-200 cursor-pointer shrink-0 ' +
+  'inline-flex items-center gap-2 rounded-none border px-4 py-2 text-sm font-medium transition-all duration-200 cursor-pointer shrink-0 ' +
   'border-slate-200/80 dark:border-slate-500/50 bg-white/80 dark:bg-slate-700/80 text-slate-600 dark:text-slate-300 ' +
   'hover:border-primary/40 hover:bg-primary/5 dark:hover:bg-primary/10 hover:text-primary dark:hover:text-sky-300 hover:shadow-sm'
 const CHIP_ACTIVE =
   'border-primary bg-primary/10 dark:bg-primary/20 text-primary dark:text-sky-300 shadow-sm ring-1 ring-primary/20 dark:ring-primary/30'
 const DROPDOWN_PANEL_CLASS =
-  'absolute left-0 right-0 mt-3 rounded-2xl overflow-hidden z-40 min-w-[300px] ' +
+  'absolute left-0 right-0 mt-3 rounded-none overflow-hidden z-40 min-w-[300px] ' +
   'bg-white dark:bg-slate-800/98 shadow-2xl shadow-slate-300/30 dark:shadow-slate-950/60 ' +
   'ring-1 ring-slate-200/80 dark:ring-slate-600/80 ' +
   'border-t-4 border-t-primary'
 
 function TripFiltersInner({ filters, onFiltersChange }: TripFiltersProps) {
+  const { currency, formatPrice } = useCurrency()
   const [agencies, setAgencies] = useState<AgencyDTO[]>([])
   const [openFilter, setOpenFilter] = useState<OpenFilter>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -159,14 +162,14 @@ function TripFiltersInner({ filters, onFiltersChange }: TripFiltersProps) {
   const priceLabel = useMemo(
     () =>
       filters.minPrice != null || filters.maxPrice != null
-        ? `${filters.minPrice ?? '0'} – ${filters.maxPrice ?? 'Any'}`
+        ? `${filters.minPrice != null ? formatPrice(filters.minPrice) : formatPrice(0)} – ${filters.maxPrice != null ? formatPrice(filters.maxPrice) : 'Any'}`
         : 'Price',
     [filters.minPrice, filters.maxPrice]
   )
 
   return (
     <div ref={containerRef} className="space-y-0 relative z-30">
-      <div className="rounded-2xl bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-3 shadow-soft dark:shadow-none ring-1 ring-slate-200/60 dark:ring-slate-600/60">
+      <div className="rounded-none bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm p-3 shadow-soft dark:shadow-none ring-1 ring-slate-200/60 dark:ring-slate-600/60">
         <div className="flex flex-wrap items-center gap-2">
           <button
             type="button"
@@ -265,7 +268,7 @@ function TripFiltersInner({ filters, onFiltersChange }: TripFiltersProps) {
                 e.preventDefault()
                 clearAll()
               }}
-              className="ml-1 px-4 py-2 rounded-full text-sm font-medium text-primary hover:bg-primary/10 dark:hover:bg-primary/20 cursor-pointer shrink-0 transition-colors"
+              className="ml-1 px-4 py-2 rounded-none text-sm font-medium text-primary hover:bg-primary/10 dark:hover:bg-primary/20 cursor-pointer shrink-0 transition-colors"
             >
               Clear all
             </button>
@@ -318,30 +321,48 @@ function TripFiltersInner({ filters, onFiltersChange }: TripFiltersProps) {
                     <span className="material-symbols-outlined align-middle text-[14px] mr-1">
                       attach_money
                     </span>
-                    Min price ($)
+                    Min price ({currency})
                   </label>
                   <input
                     type="number"
                     min={0}
-                    step={50}
-                    placeholder="0"
-                    value={filters.minPrice ?? ''}
+                    step={currency === 'PKR' ? 5000 : 10}
+                    placeholder={currency === 'PKR' ? '20000' : '100'}
+                    value={
+                      filters.minPrice != null
+                        ? Math.round(convertFromPkr(filters.minPrice, currency))
+                        : ''
+                    }
                     onChange={(e) =>
-                      update({ minPrice: e.target.value === '' ? undefined : Number(e.target.value) })
+                      update({
+                        minPrice:
+                          e.target.value === ''
+                            ? undefined
+                            : convertToPkr(Number(e.target.value), currency),
+                      })
                     }
                     className={INPUT_CLASS}
                   />
                 </div>
                 <div>
-                  <label className={LABEL_CLASS}>Max price ($)</label>
+                  <label className={LABEL_CLASS}>Max price ({currency})</label>
                   <input
                     type="number"
                     min={0}
-                    step={50}
-                    placeholder="Any"
-                    value={filters.maxPrice ?? ''}
+                    step={currency === 'PKR' ? 5000 : 10}
+                    placeholder={currency === 'PKR' ? '200000' : '1000'}
+                    value={
+                      filters.maxPrice != null
+                        ? Math.round(convertFromPkr(filters.maxPrice, currency))
+                        : ''
+                    }
                     onChange={(e) =>
-                      update({ maxPrice: e.target.value === '' ? undefined : Number(e.target.value) })
+                      update({
+                        maxPrice:
+                          e.target.value === ''
+                            ? undefined
+                            : convertToPkr(Number(e.target.value), currency),
+                      })
                     }
                     className={INPUT_CLASS}
                   />

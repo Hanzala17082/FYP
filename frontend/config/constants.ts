@@ -7,6 +7,7 @@ export const ROUTES = {
   ADMIN_LOGIN: '/admin/login',
   REGISTER: '/register',
   FORGOT_PASSWORD: '/forgot-password',
+  RESET_PASSWORD: '/reset-password',
   TRIPS: '/trips',
   AGENCIES: '/agencies',
   DASHBOARD: {

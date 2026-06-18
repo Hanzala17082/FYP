@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useAuth } from '@/shared/contexts/AuthContext'
 import { Avatar } from '@/shared/components/ui/Avatar'
 import { cn } from '@/shared/utils/cn'
+import { logger } from '@/shared/utils/logger'
 
 interface LogoutButtonProps {
   variant?: 'default' | 'ghost' | 'icon'
@@ -25,7 +26,7 @@ export function LogoutButton({ variant = 'icon', className, showText = false }: 
       await new Promise((resolve) => setTimeout(resolve, 300))
       await logout()
     } catch (error) {
-      console.error('Logout error:', error)
+      logger.error('Logout error:', error)
       setIsLoggingOut(false)
     }
   }
@@ -39,7 +40,7 @@ export function LogoutButton({ variant = 'icon', className, showText = false }: 
           onMouseLeave={() => setShowTooltip(false)}
           disabled={isLoggingOut}
           className={cn(
-            'relative flex items-center justify-center rounded-full transition-colors',
+            'relative flex items-center justify-center rounded-none transition-colors',
             'size-10 text-[24px]',
             'bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700',
             'text-slate-700 dark:text-white',
@@ -57,7 +58,7 @@ export function LogoutButton({ variant = 'icon', className, showText = false }: 
         {/* User Info Tooltip */}
         {showTooltip && user && (
           <div
-            className="absolute right-0 top-full mt-2 z-50 w-64 p-4 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 animate-in fade-in slide-in-from-top-2 duration-200"
+            className="absolute right-0 top-full mt-2 z-50 w-64 p-4 rounded-none shadow-2xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 animate-in fade-in slide-in-from-top-2 duration-200"
             onMouseEnter={() => setShowTooltip(true)}
             onMouseLeave={() => setShowTooltip(false)}
           >
@@ -92,7 +93,7 @@ export function LogoutButton({ variant = 'icon', className, showText = false }: 
               <button
                 onClick={handleLogout}
                 disabled={isLoggingOut}
-                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors disabled:opacity-50"
+                className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-none text-sm font-semibold text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 transition-colors disabled:opacity-50"
               >
                 <span className="material-symbols-outlined text-[18px]">logout</span>
                 <span>{isLoggingOut ? 'Logging out...' : 'Logout'}</span>
@@ -109,7 +110,7 @@ export function LogoutButton({ variant = 'icon', className, showText = false }: 
       onClick={handleLogout}
       disabled={isLoggingOut}
       className={cn(
-        'flex items-center gap-2 px-4 py-2 rounded-xl font-semibold text-sm transition-all duration-200',
+        'flex items-center gap-2 px-4 py-2 rounded-none font-semibold text-sm transition-all duration-200',
         'text-slate-700 dark:text-white',
         'hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10 dark:hover:text-red-400',
         'disabled:opacity-50 disabled:cursor-not-allowed',

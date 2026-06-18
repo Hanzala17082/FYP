@@ -7,7 +7,7 @@ import { ThemeToggle } from '@/shared/components/ui/ThemeToggle'
 
 export default function HomeClient() {
   return (
-    <div className="relative min-h-screen flex flex-col w-full overflow-x-hidden bg-slate-50 dark:bg-background-dark text-slate-900 dark:text-white">
+    <div className="relative min-h-screen flex flex-col w-full overflow-x-hidden bg-background-light dark:bg-background-dark text-slate-900 dark:text-white">
       {/* Background Image */}
       <div className="fixed inset-0 w-full h-full z-0">
         <div className="absolute inset-0 bg-gradient-to-b from-black/80 via-black/60 to-transparent dark:to-background-dark z-10"></div>

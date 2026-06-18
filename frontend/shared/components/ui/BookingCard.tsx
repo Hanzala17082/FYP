@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { memo } from 'react'
 import { cn } from '@/shared/utils/cn'
 import { Avatar } from './Avatar'
 import { StatusBadge } from './StatusBadge'
@@ -26,7 +27,7 @@ interface BookingCardProps {
   className?: string
 }
 
-export function BookingCard({
+function BookingCardInner({
   traveler,
   trip,
   status,
@@ -119,3 +120,5 @@ export function BookingCard({
     </RoundedBox>
   )
 }
+
+export const BookingCard = memo(BookingCardInner)

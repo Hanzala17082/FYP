@@ -6,14 +6,81 @@
 @import url('https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap');
 
 @layer base {
+  :root {
+    --background-light: #faf6f0;
+    --background-dark: #0a0f14;
+  }
+
   /* Larger base font for better readability (default browser is 16px) */
   html {
     font-size: 18px;
-    background-color: #FFFFFF;
+    background-color: var(--background-light);
+    scrollbar-gutter: stable;
+    scrollbar-width: thin;
+    scrollbar-color: #137fec rgba(148, 163, 184, 0.28);
   }
-  
+
   html.dark {
-    background-color: #0a0f14;
+    background-color: var(--background-dark);
+    scrollbar-color: #38bdf8 rgba(15, 23, 42, 0.85);
+  }
+
+  /* Tripster scrollbars — slim pill thumb, tinted track (no harsh white bar) */
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: linear-gradient(
+      180deg,
+      rgba(148, 163, 184, 0.12) 0%,
+      rgba(148, 163, 184, 0.22) 100%
+    );
+    border-radius: 9999px;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    border-radius: 9999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+    background: linear-gradient(180deg, #5eb0ff 0%, #137fec 45%, #0066d6 100%);
+    box-shadow: 0 0 8px rgba(19, 127, 236, 0.35);
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #7ec4ff 0%, #137fec 40%, #005bb8 100%);
+    box-shadow: 0 0 12px rgba(19, 127, 236, 0.55);
+  }
+
+  *::-webkit-scrollbar-thumb:active {
+    background: linear-gradient(180deg, #137fec 0%, #004494 100%);
+  }
+
+  *::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+
+  html.dark *::-webkit-scrollbar-track {
+    background: linear-gradient(
+      180deg,
+      rgba(15, 23, 42, 0.65) 0%,
+      rgba(30, 41, 59, 0.85) 100%
+    );
+  }
+
+  html.dark *::-webkit-scrollbar-thumb {
+    background: linear-gradient(180deg, #7dd3fc 0%, #137fec 40%, #0c4a6e 100%);
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.35);
+  }
+
+  html.dark *::-webkit-scrollbar-thumb:hover {
+    background: linear-gradient(180deg, #bae6fd 0%, #38bdf8 35%, #137fec 100%);
+    box-shadow: 0 0 14px rgba(56, 189, 248, 0.5);
+  }
+
+  html.dark *::-webkit-scrollbar-thumb:active {
+    background: linear-gradient(180deg, #137fec 0%, #0369a1 100%);
   }
   
   body {
@@ -21,7 +88,11 @@
     font-size: 1rem;
     line-height: 1.6;
     min-height: 100dvh;
-    background-color: inherit;
+    background-color: var(--background-light);
+  }
+
+  html.dark body {
+    background-color: var(--background-dark);
   }
 }
 
@@ -32,6 +103,21 @@
   .hide-scrollbar {
     -ms-overflow-style: none;
     scrollbar-width: none;
+  }
+
+  /* Extra-slim scrollbar for tight horizontal strips (e.g. profile tabs) */
+  .scrollbar-tripster {
+    scrollbar-width: thin;
+    scrollbar-color: #137fec rgba(148, 163, 184, 0.28);
+  }
+
+  .scrollbar-tripster::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  html.dark .scrollbar-tripster {
+    scrollbar-color: #38bdf8 rgba(15, 23, 42, 0.85);
   }
 
   .glass-container {

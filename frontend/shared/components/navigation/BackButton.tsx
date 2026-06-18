@@ -1,8 +1,10 @@
 'use client'
 
+import { memo } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuth } from '@/shared/contexts/AuthContext'
 import { cn } from '@/shared/utils/cn'
+import { logger } from '@/shared/utils/logger'
 
 interface BackButtonProps {
   href?: string
@@ -19,7 +21,9 @@ interface BackButtonProps {
  * Position: Always on the LEFT side of header
  * Icon: arrow_back (consistent)
  */
-export function BackButton({
+export const BackButton = memo(BackButtonInner)
+
+function BackButtonInner({
   href,
   label = 'Back',
   onClick,
@@ -34,7 +38,7 @@ export function BackButton({
   const handleClick = () => {
     // Validate role if required
     if (validateRole && expectedRole && user?.role !== expectedRole) {
-      console.warn(`BackButton: Role mismatch. Expected ${expectedRole}, got ${user?.role}`)
+      logger.warn(`BackButton: Role mismatch. Expected ${expectedRole}, got ${user?.role}`)
       return
     }
 
@@ -54,7 +58,7 @@ export function BackButton({
         'flex items-center gap-2 h-10 px-3 text-sm font-semibold',
         'text-slate-700 dark:text-white',
         'hover:bg-slate-100 dark:hover:bg-slate-700',
-        'rounded-xl transition-colors duration-200',
+        'rounded-none transition-colors duration-200',
         'border border-slate-200 dark:border-slate-700',
         'bg-white dark:bg-slate-800',
         className

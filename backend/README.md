@@ -35,14 +35,28 @@ Django modular-monolith API for Tripster. Uses **PostgreSQL** (e.g. Supabase) as
    ```
    Create users, agencies, and trips via Django admin at `/admin/` or via the API.
 
-6. **Run the server:**
+6. **Run the server (REST + WebSocket chat):**
    ```bash
-   python manage.py runserver
+   daphne -b 0.0.0.0 -p 8000 config.asgi:application
    ```
-   Or from the backend folder: `npm run dev` (runs `python3 manage.py runserver 0.0.0.0:8000`).
+   For REST-only without live chat: `python manage.py runserver`
+
+7. **Chat setup (trip group live chat):**
+   - Set `SUPABASE_JWT_SECRET` in `.env` (Supabase Dashboard → Project Settings → API → JWT Secret).
+   - Run migrations against Supabase Postgres: `python manage.py migrate`
+   - Backfill existing confirmed bookings: `python manage.py sync_chat_memberships`
+   - On Supabase, if the booking trigger was not applied via migrate, run [`../supabase/chat_membership_trigger.sql`](../supabase/chat_membership_trigger.sql) in the SQL Editor.
+   - Optional: set `REDIS_URL` for production WebSocket scaling (omit for in-memory dev layer).
+
+8. **Frontend env** (in `frontend/.env.local`):
+   ```env
+   NEXT_PUBLIC_API_URL=http://localhost:8000/api
+   NEXT_PUBLIC_WS_URL=ws://localhost:8000
+   ```
+
    API base URL: `http://localhost:8000/api/`
 
-**Quick run:** Ensure `DATABASE_URL` is set, run `python manage.py migrate`, then start the server. Set `NEXT_PUBLIC_API_URL=http://localhost:8000/api` in the frontend `.env`. Create data via Django admin at `/admin/` or the API.
+**Quick run:** Ensure `DATABASE_URL` is set, run `python manage.py migrate`, then start Daphne. Set `NEXT_PUBLIC_API_URL` and `SUPABASE_JWT_SECRET` in env. Create data via Django admin at `/admin/` or the API.
 
 ## API base URL
 
@@ -51,6 +65,8 @@ The frontend expects `NEXT_PUBLIC_API_URL=http://localhost:8000/api`. All routes
 - `POST /api/auth/login`, `/api/auth/register`, `/api/auth/refresh`, `/api/auth/logout`, `/api/auth/forgot-password`, `/api/auth/reset-password`
 - `GET /api/trips`, `GET /api/trips/featured`, `GET /api/trips/search`, `GET /api/trips/<slug>`
 - `GET/POST /api/bookings`, `GET /api/bookings/<id>`, `PATCH /api/bookings/<id>/status`
+- `GET /api/chat/groups`, `GET /api/chat/groups/<id>/messages`, `PATCH /api/chat/groups/<id>/policy`
+- WebSocket: `ws://localhost:8000/ws/chat/<group_id>/?token=<supabase_access_token>`
 - `GET /api/agencies`, `GET /api/agencies/<slug>`, `GET /api/agencies/<slug>/trips`, `GET /api/agencies/<slug>/reviews`
 - `GET /api/trips/<id>/reviews`, `POST /api/reviews`
 - `GET /api/dashboard/traveler`, `GET /api/dashboard/agency`, `GET /api/dashboard/admin`

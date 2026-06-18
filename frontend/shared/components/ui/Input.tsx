@@ -11,24 +11,25 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
 export const Input = forwardRef<HTMLInputElement, InputProps>(
   ({ label, error, icon, iconPosition = 'left', className, ...props }, ref) => {
     return (
-      <label className="flex flex-col w-full">
+      <label className="flex flex-col w-full min-w-0">
         {label && (
-          <span className="text-white text-xs font-medium leading-normal pb-1.5 ml-1 uppercase tracking-wider opacity-70">
+          <span className="pb-1.5 ml-1 text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
             {label}
           </span>
         )}
-        <div className="relative">
+        <div className="relative min-w-0">
           {icon && iconPosition === 'left' && (
-            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/30">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/30">
               {icon}
             </span>
           )}
           <input
             ref={ref}
             className={cn(
-              'form-input flex w-full rounded-xl text-white border border-white/20 bg-white/5',
-              'focus:border-primary focus:ring-1 focus:ring-primary h-12 px-4 text-base',
-              'placeholder:text-white/20 transition-colors',
+              'form-input flex h-12 w-full min-w-0 rounded-none border px-4 text-base transition-colors',
+              'border-slate-300 bg-white text-slate-900 placeholder:text-slate-400',
+              'focus:border-primary focus:ring-1 focus:ring-primary/30',
+              'dark:border-slate-600 dark:bg-slate-900 dark:text-white dark:placeholder:text-slate-500',
               icon && iconPosition === 'left' && 'pl-12',
               icon && iconPosition === 'right' && 'pr-12',
               error && 'border-red-500',
@@ -37,7 +38,7 @@ export const Input = forwardRef<HTMLInputElement, InputProps>(
             {...props}
           />
           {icon && iconPosition === 'right' && (
-            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30">
+            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-white/30">
               {icon}
             </span>
           )}

@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import Link from 'next/link'
 import { Button } from '@/shared/components/ui/Button'
+import { logger } from '@/shared/utils/logger'
 
 export default function AdminError({
   error,
@@ -12,11 +13,11 @@ export default function AdminError({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error('Admin section error:', error)
+    logger.error('Admin section error:', error)
   }, [error])
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 p-6">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background-light dark:bg-slate-950 p-6">
       <h1 className="text-xl font-bold text-slate-900 dark:text-white mb-2">
         Something went wrong
       </h1>

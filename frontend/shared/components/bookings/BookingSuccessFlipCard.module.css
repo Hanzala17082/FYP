@@ -1,0 +1,89 @@
+/* Adapted from uiverse.io/Praashoo7/black-lizard-62 (MIT License) */
+
+.flipCard {
+  background-color: transparent;
+  width: min(100%, 280px);
+  height: 176px;
+  perspective: 1000px;
+  color: white;
+  margin: 0 auto;
+}
+
+.flipCardInner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  text-align: center;
+  transition: transform 0.9s cubic-bezier(0.4, 0.2, 0.2, 1);
+  transform-style: preserve-3d;
+}
+
+.flipCard.flipped .flipCardInner {
+  transform: perspective(1000px) rotateY(180deg);
+}
+
+.flipCardFront,
+.flipCardBack {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow:
+    rgba(0, 0, 0, 0.4) 0px 2px 2px,
+    rgba(0, 0, 0, 0.3) 0px 7px 13px -3px,
+    rgba(0, 0, 0, 0.2) 0px -1px 0px inset;
+  background-color: #171717;
+}
+
+.flipCardBack {
+  transform: rotateY(180deg);
+}
+
+.magneticStrip {
+  width: 100%;
+  height: 2.5rem;
+  margin-top: 1.5rem;
+  background: repeating-linear-gradient(
+    45deg,
+    #303030,
+    #303030 10px,
+    #202020 10px,
+    #202020 20px
+  );
+}
+
+.stripRow {
+  display: flex;
+  gap: 0.6rem;
+  padding: 1.25rem 0.85rem 0;
+}
+
+.stripBlock {
+  background-color: #ffffff;
+  border-radius: 3px;
+  height: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stripBlockWide {
+  width: 8rem;
+}
+
+.stripBlockNarrow {
+  width: 4.1rem;
+}
+
+.stripCode {
+  font-weight: 700;
+  font-size: 0.55rem;
+  color: #111;
+  letter-spacing: 0.08em;
+}

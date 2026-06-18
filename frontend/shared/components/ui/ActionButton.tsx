@@ -33,7 +33,7 @@ export function ActionButton({
     >
       <div
         className={cn(
-          'flex items-center justify-center rounded-2xl transition-all',
+          'flex items-center justify-center rounded-none transition-all',
           variant === 'default'
             ? 'bg-white dark:bg-slate-800 shadow-sm border border-slate-100 dark:border-slate-700 group-hover:border-primary/30 group-hover:bg-primary/5'
             : 'bg-primary text-white shadow-lg shadow-primary/20 hover:bg-blue-600',

@@ -29,6 +29,12 @@ export function generateMetadata(config: SEOConfig): Metadata {
     title,
     description,
     keywords: keywords?.join(', '),
+    icons: {
+      icon: [
+        { url: '/favicon.ico', sizes: 'any' },
+        { url: '/icon.svg', type: 'image/svg+xml' },
+      ],
+    },
     openGraph: {
       title,
       description,
@@ -84,7 +90,7 @@ export function generateStructuredData(type: 'Organization' | 'Trip' | 'Agency',
         offers: {
           '@type': 'Offer',
           price: data.price,
-          priceCurrency: 'USD',
+          priceCurrency: 'PKR',
         },
         location: {
           '@type': 'Place',

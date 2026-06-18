@@ -22,7 +22,7 @@ export function BottomNavigation({ items, variant = 'default', className }: Bott
     return (
       <nav
         className={cn(
-          'fixed bottom-0 left-0 right-0 bg-white dark:bg-background-dark/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 z-50 pb-safe pt-2 px-6 h-[84px] md:hidden',
+          'fixed bottom-0 left-0 right-0 bg-background-light/95 dark:bg-background-dark/95 backdrop-blur-lg border-t border-slate-200 dark:border-slate-800 z-50 pb-safe pt-2 px-6 h-[84px] md:hidden',
           className
         )}
       >
@@ -36,7 +36,7 @@ export function BottomNavigation({ items, variant = 'default', className }: Bott
                 <div key={item.href} className="relative -top-6">
                   <Link
                     href={item.href}
-                    className="flex items-center justify-center w-14 h-14 rounded-full bg-primary shadow-lg shadow-sky-500/30 dark:shadow-sky-900/50 text-white hover:bg-blue-600 transition-colors ring-4 ring-white dark:ring-background-dark"
+                    className="flex items-center justify-center w-14 h-14 rounded-none bg-primary shadow-lg shadow-sky-500/30 dark:shadow-sky-900/50 text-white hover:bg-blue-600 transition-colors ring-4 ring-white dark:ring-background-dark"
                   >
                     <span className="material-symbols-outlined text-[28px]">{item.icon}</span>
                   </Link>
@@ -86,7 +86,7 @@ export function BottomNavigation({ items, variant = 'default', className }: Bott
   return (
     <nav
       className={cn(
-        'fixed bottom-0 left-0 right-0 z-50 bg-white/90 dark:bg-card-dark/95 backdrop-blur-md border-t border-slate-200 dark:border-border-dark md:hidden',
+        'fixed bottom-0 left-0 right-0 z-50 bg-background-light/95 dark:bg-card-dark/95 backdrop-blur-md border-t border-slate-200 dark:border-border-dark md:hidden',
         className
       )}
     >

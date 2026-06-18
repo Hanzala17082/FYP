@@ -31,26 +31,29 @@ export function StatCard({
   return (
     <RoundedBox
       variant={variant === 'highlight' ? 'default' : 'default'}
-      padding="lg"
+      padding="md"
       className={cn(
-        'flex flex-col gap-2',
+        'flex min-w-0 flex-col gap-2 overflow-hidden',
         (clickable || onClick) && 'cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]',
         className
       )}
       onClick={onClick}
     >
-      <div className="flex items-center justify-between">
-        {icon && (
-          <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-            {icon}
-            <p className="text-sm font-medium">{title}</p>
-          </div>
-        )}
-        {!icon && <p className="text-slate-500 dark:text-slate-400 text-sm font-medium">{title}</p>}
+      <div className="flex items-start justify-between gap-2 min-w-0">
+        <div className="flex min-w-0 flex-1 items-start gap-2">
+          {icon && (
+            <div className="shrink-0 text-slate-500 dark:text-slate-400 [&_.material-symbols-outlined]:text-[18px] sm:[&_.material-symbols-outlined]:text-[20px]">
+              {icon}
+            </div>
+          )}
+          <p className="min-w-0 text-xs sm:text-sm font-medium leading-snug text-slate-500 dark:text-slate-400 break-words">
+            {title}
+          </p>
+        </div>
         {trend && (
           <span
             className={cn(
-              'inline-flex items-center gap-1 rounded-full px-2 py-1 text-xs font-semibold border',
+              'inline-flex shrink-0 items-center gap-1 rounded-none px-2 py-1 text-xs font-semibold border',
               trend.isPositive
                 ? 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-transparent dark:border-emerald-500/20'
                 : 'bg-slate-100 dark:bg-slate-700/30 text-slate-600 dark:text-slate-400 border-transparent dark:border-slate-700/50'
@@ -63,9 +66,13 @@ export function StatCard({
           </span>
         )}
       </div>
-      <p className="text-slate-900 dark:text-white tracking-tight text-2xl font-bold">{value}</p>
+      <p className="min-w-0 truncate text-slate-900 dark:text-white tracking-tight text-xl sm:text-2xl font-bold">
+        {value}
+      </p>
       {subtitle && (
-        <p className="text-slate-400 dark:text-slate-500 text-xs font-medium">{subtitle}</p>
+        <p className="min-w-0 text-slate-400 dark:text-slate-500 text-xs font-medium leading-snug break-words">
+          {subtitle}
+        </p>
       )}
     </RoundedBox>
   )

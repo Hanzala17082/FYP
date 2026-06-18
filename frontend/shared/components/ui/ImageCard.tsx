@@ -35,13 +35,13 @@ export function ImageCard({
     return (
       <div
         className={cn(
-          'bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center min-h-[140px] relative group cursor-pointer',
+          'bg-white dark:bg-slate-800 rounded-none overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700 flex items-center justify-center min-h-[140px] relative group cursor-pointer',
           className
         )}
         onClick={onClick}
       >
         <div className="absolute inset-0 bg-slate-50 dark:bg-slate-700/50 flex flex-col items-center justify-center gap-2 group-hover:bg-slate-100 dark:group-hover:bg-slate-700 transition-colors">
-          <div className="size-8 rounded-full bg-slate-200 dark:bg-slate-600 flex items-center justify-center">
+          <div className="size-8 rounded-none bg-slate-200 dark:bg-slate-600 flex items-center justify-center">
             <span className="material-symbols-outlined text-slate-500 dark:text-slate-300 text-[20px]">
               add
             </span>
@@ -57,7 +57,7 @@ export function ImageCard({
   return (
     <div
       className={cn(
-        'bg-white dark:bg-slate-800 rounded-xl overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700',
+        'bg-white dark:bg-slate-800 rounded-none overflow-hidden shadow-sm border border-slate-100 dark:border-slate-700',
         onClick && 'cursor-pointer hover:shadow-md transition-shadow',
         className
       )}

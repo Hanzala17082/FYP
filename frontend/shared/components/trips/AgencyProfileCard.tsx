@@ -74,7 +74,7 @@ export function AgencyProfileCard({ agency, showFullDetails = false, onViewProfi
               {agency.specialties.map((specialty, index) => (
                 <span
                   key={index}
-                  className="px-2 py-1 text-xs font-medium bg-primary/10 text-primary rounded-lg"
+                  className="px-2 py-1 text-xs font-medium bg-primary/10 text-primary rounded-none"
                 >
                   {specialty}
                 </span>

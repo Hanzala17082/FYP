@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { Button } from '@/shared/components/ui/Button'
 import { Logo } from '@/shared/components/layout/Logo'
+import { logger } from '@/shared/utils/logger'
 
 export default function Error({
   error,
@@ -13,7 +14,7 @@ export default function Error({
 }) {
   useEffect(() => {
     // Log the error to an error reporting service
-    console.error('Application error:', error)
+    logger.error('Application error:', error)
   }, [error])
 
   return (

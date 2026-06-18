@@ -78,12 +78,13 @@ class Command(BaseCommand):
             )
 
         demos = [
-            ('Hunza Valley Explorer (Demo)', 'hunza', Decimal('45000.00')),
-            ('Skardu Lakes Circuit (Demo)', 'skardu', Decimal('52000.00')),
+            ('Hunza Valley Explorer (Demo)', 'hunza', 5, Decimal('55000.00')),
+            ('Skardu Lakes Circuit (Demo)', 'skardu', 7, Decimal('77000.00')),
+            ('Islamabad City Break (Demo)', 'islamabad', 3, Decimal('21000.00')),
         ]
         today = timezone.now().date()
         created_trips = 0
-        for title, prefix, price in demos:
+        for title, prefix, duration_days, price in demos:
             tid = uuid.uuid4()
             slug = f'{prefix}-demo-{str(tid)[:8]}'
             Trip.objects.create(
@@ -95,10 +96,10 @@ class Command(BaseCommand):
                 short_description=f'Demo trip in {prefix.title()} for frontend Explore.',
                 destination=prefix.title(),
                 price=price,
-                duration_days=5,
+                duration_days=duration_days,
                 images=['https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=800'],
                 start_date=today,
-                end_date=today + timedelta(days=5),
+                end_date=today + timedelta(days=duration_days),
                 status=Trip.Status.ACTIVE,
                 tags=['demo', 'seed'],
             )

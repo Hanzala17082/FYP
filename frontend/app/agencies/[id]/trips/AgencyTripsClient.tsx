@@ -91,7 +91,9 @@ export default function AgencyTripsClient({ agencyId }: AgencyTripsClientProps) 
               <Link key={trip.id} href={`/trips/${trip.slug}`}>
                 <TripCard
                   id={trip.id}
+                  slug={trip.slug}
                   title={trip.title}
+                  destination={trip.destination}
                   agency={{
                     name: trip.agency.name,
                     verified: trip.agency.verified,

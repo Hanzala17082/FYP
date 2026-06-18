@@ -21,6 +21,8 @@ export interface BookingDTO {
   numberOfTravelers: number
   status: 'pending' | 'confirmed' | 'cancelled' | 'completed' | 'rejected'
   specialRequests?: string
+  totalAmount?: number
+  paymentStatus?: 'paid' | 'refunded'
   createdAt: string
   updatedAt: string
 }

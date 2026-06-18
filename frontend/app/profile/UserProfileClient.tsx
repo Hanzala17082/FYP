@@ -1,39 +1,58 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useAuth } from '@/shared/contexts/AuthContext'
+import dynamic from 'next/dynamic'
+import { useCurrency } from '@/shared/contexts/CurrencyContext'
 import { Header, BottomNavigation } from '@/shared/components/layout'
-import { Avatar, Button, RoundedBox, SectionHeader, Input, AlertBox, StatCard, StatusBadge } from '@/shared/components/ui'
+import { Avatar, Button, RoundedBox, SectionHeader, Input, AlertBox, StatCard, StatusBadge, CurrencySelect } from '@/shared/components/ui'
 import { LogoutButton } from '@/shared/components/auth/LogoutButton'
 import { ThemeToggle } from '@/shared/components/ui/ThemeToggle'
 import { NavButton } from '@/shared/components/navigation'
 import { ROUTES, USER_ROLES } from '@/config/constants'
 import { getErrorMessage } from '@/shared/utils/error-message'
+import { authService } from '@/services/auth.service'
+import { createBrowserSupabaseClient } from '@/shared/lib/supabase/client'
 import { dashboardService } from '@/services/dashboard.service'
 import { bookingsService } from '@/services/bookings.service'
+import { chatService } from '@/services/chat.service'
 import { agenciesService } from '@/services/agencies.service'
 import { tripsService } from '@/services/trips.service'
+import { walletService } from '@/services/wallet.service'
+import { profileService } from '@/services/profile.service'
+import { estimateTripPricePkr, clampTripPricePkr, TRIP_PRICE_MIN_PKR, TRIP_PRICE_MAX_PKR } from '@/shared/utils/currency'
+import { AvatarPicker } from '@/shared/components/profile/AvatarPicker'
+import { userDtoToEntity } from '@/shared/lib/supabase/profile'
+import type { WalletSummaryDTO } from '@/types/api/wallet.types'
 import { BookingCard } from '@/shared/components/ui'
 import type { BookingDTO } from '@/types/api/bookings.types'
 import type { TripDTO } from '@/types/api/trips.types'
 import Link from 'next/link'
 
-type ProfileTab = 'overview' | 'trips' | 'myTrips' | 'wishlist' | 'personal' | 'wallet' | 'complaints' | 'settings'
+const TripChatsPanel = dynamic(
+  () => import('@/shared/components/chat/TripChatsPanel').then((m) => m.TripChatsPanel),
+  { loading: () => <RoundedBox padding="lg"><p className="text-sm text-slate-500">Loading trip chats…</p></RoundedBox> }
+)
+
+type ProfileTab = 'overview' | 'trips' | 'myTrips' | 'chats' | 'personal' | 'wallet' | 'complaints' | 'settings'
 type TravelerKpiKind = 'completed' | 'enrolled' | 'pending' | 'rejected'
 
 export default function UserProfileClient() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { user, setUser, logout } = useAuth()
+  const { currency, setCurrency, formatPrice } = useCurrency()
+  const [currencySaved, setCurrencySaved] = useState(false)
   const [activeTab, setActiveTab] = useState<ProfileTab>('overview')
   const [fullName, setFullName] = useState(user?.fullName || '')
   const [city, setCity] = useState(user?.city || '')
   const [avatar, setAvatar] = useState(user?.avatar || '')
   const [showSavedBanner, setShowSavedBanner] = useState(false)
   const [agencyTrips, setAgencyTrips] = useState<TripDTO[]>([])
+  const [agencyBookings, setAgencyBookings] = useState<BookingDTO[]>([])
+  const [bookingActionId, setBookingActionId] = useState<string | null>(null)
   const [travelerBookings, setTravelerBookings] = useState<BookingDTO[]>([])
-  const [wishlistTrips, setWishlistTrips] = useState<TripDTO[]>([])
   const [profileLoading, setProfileLoading] = useState(true)
   const [isAddingTrip, setIsAddingTrip] = useState(false)
   const [newTrip, setNewTrip] = useState({
@@ -45,11 +64,22 @@ export default function UserProfileClient() {
     price: 0,
   })
   const [tripImages, setTripImages] = useState<string[]>([])
-  // Track request statuses: requestId -> status
-  const [requestStatuses, setRequestStatuses] = useState<Record<string, 'pending' | 'confirmed' | 'rejected'>>({})
-  const wishlistStorageKey = useMemo(() => (user ? `wishlist:${user.id}` : null), [user])
-  const [wishlist, setWishlist] = useState<string[]>([])
   const [travelerKpiModal, setTravelerKpiModal] = useState<TravelerKpiKind | null>(null)
+  const [showPasswordForm, setShowPasswordForm] = useState(false)
+  const [usesEmailAuth, setUsesEmailAuth] = useState(true)
+  const [currentPassword, setCurrentPassword] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmNewPassword, setConfirmNewPassword] = useState('')
+  const [passwordChangeLoading, setPasswordChangeLoading] = useState(false)
+  const [passwordChangeError, setPasswordChangeError] = useState('')
+  const [passwordChangeSuccess, setPasswordChangeSuccess] = useState(false)
+  const [walletSummary, setWalletSummary] = useState<WalletSummaryDTO | null>(null)
+  const [walletLoading, setWalletLoading] = useState(false)
+  const [walletError, setWalletError] = useState('')
+  const [walletSeeding, setWalletSeeding] = useState(false)
+  const [avatarUploading, setAvatarUploading] = useState(false)
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileSaveError, setProfileSaveError] = useState('')
 
   useEffect(() => {
     if (!user) return
@@ -58,27 +88,33 @@ export default function UserProfileClient() {
     if (user.role === USER_ROLES.TRAVELER) {
       Promise.all([
         bookingsService.getBookings().then((res) => res.data?.bookings ?? []),
-        tripsService.getTrips({ limit: 100 }).then((res) => res.data?.trips ?? []),
       ])
-        .then(([bookings, trips]) => {
+        .then(([bookings]) => {
           if (!cancelled) {
             setTravelerBookings(bookings)
-            setWishlistTrips(trips)
           }
         })
-        .catch(() => { if (!cancelled) setTravelerBookings([]); setWishlistTrips([]) })
+        .catch((err: unknown) => {
+          if (!cancelled) {
+            setTravelerBookings([])
+            console.error('[dashboard] Failed to load traveler bookings:', err)
+          }
+        })
         .finally(() => { if (!cancelled) setProfileLoading(false) })
     } else if (user.role === USER_ROLES.AGENCY) {
-      dashboardService
-        .getAgencyDashboard()
-        .then((dash) => {
+      Promise.all([
+        dashboardService.getAgencyDashboard(),
+        bookingsService.getBookings().then((res) => res.data?.bookings ?? []),
+      ])
+        .then(([dash, bookings]) => {
           if (cancelled) return
+          setAgencyBookings(bookings)
           const agencyId = dash.agency?.id
           if (agencyId) {
             return agenciesService.getAgencyTrips(agencyId).then((res) => (res.data?.trips ?? [])).then(setAgencyTrips)
           }
         })
-        .catch(() => { if (!cancelled) setAgencyTrips([]) })
+        .catch(() => { if (!cancelled) { setAgencyTrips([]); setAgencyBookings([]) } })
         .finally(() => { if (!cancelled) setProfileLoading(false) })
     } else {
       setProfileLoading(false)
@@ -86,60 +122,108 @@ export default function UserProfileClient() {
     return () => { cancelled = true }
   }, [user?.id, user?.role])
 
+  const refreshTravelerBookings = () => {
+    if (!user || user.role !== USER_ROLES.TRAVELER) return
+    bookingsService
+      .getBookings()
+      .then((res) => setTravelerBookings(res.data?.bookings ?? []))
+      .catch((err: unknown) => {
+        console.error('[dashboard] Failed to refresh traveler bookings:', err)
+      })
+  }
+
+  // Refresh bookings when opening My Trips (e.g. after booking from trip detail page)
+  useEffect(() => {
+    if (activeTab === 'myTrips' && user?.role === USER_ROLES.TRAVELER) {
+      refreshTravelerBookings()
+    }
+  }, [activeTab, user?.id, user?.role])
+
   // Support deep-linking to a specific tab (e.g. /dashboard?tab=personal)
   useEffect(() => {
     const tab = searchParams?.get('tab')
     if (!tab) return
-    const allowed: ProfileTab[] = ['overview', 'trips', 'myTrips', 'wishlist', 'personal', 'wallet', 'complaints', 'settings']
+    const allowed: ProfileTab[] = ['overview', 'trips', 'myTrips', 'chats', 'personal', 'wallet', 'complaints', 'settings']
     if (allowed.includes(tab as ProfileTab)) {
       setActiveTab(tab as ProfileTab)
     }
   }, [searchParams])
 
   useEffect(() => {
-    if (typeof window === 'undefined') return
-    if (!wishlistStorageKey) return
-    const raw = window.localStorage.getItem(wishlistStorageKey)
-    if (raw) {
-      try {
-        setWishlist(JSON.parse(raw))
-      } catch {
-        setWishlist([])
-      }
-    } else {
-      setWishlist([])
+    if (!user) {
+      router.replace(ROUTES.LOGIN)
     }
-  }, [wishlistStorageKey])
+  }, [user, router])
 
-  const removeFromWishlist = (slug: string) => {
-    if (typeof window === 'undefined') return
-    if (!wishlistStorageKey) return
-    setWishlist((prev) => {
-      const next = prev.filter((x) => x !== slug)
-      window.localStorage.setItem(wishlistStorageKey, JSON.stringify(next))
-      return next
+  useEffect(() => {
+    if (!user || (user.role !== USER_ROLES.TRAVELER && user.role !== USER_ROLES.AGENCY)) return
+    if (activeTab !== 'wallet') return
+    let cancelled = false
+    setWalletLoading(true)
+    setWalletError('')
+    walletService
+      .getWallet()
+      .then((data) => {
+        if (!cancelled) setWalletSummary(data)
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setWalletError(getErrorMessage(err, 'Failed to load wallet.'))
+      })
+      .finally(() => {
+        if (!cancelled) setWalletLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [user?.id, user?.role, activeTab])
+
+  useEffect(() => {
+    if (activeTab !== 'settings' || !user) return
+    const sb = createBrowserSupabaseClient()
+    void sb.auth.getUser().then(({ data }) => {
+      const providers = data.user?.identities?.map((identity) => identity.provider) ?? []
+      setUsesEmailAuth(providers.length === 0 || providers.includes('email'))
     })
+  }, [activeTab, user])
+
+  const handleAcceptRequest = async (bookingId: string) => {
+    setBookingActionId(bookingId)
+    try {
+      await bookingsService.updateBookingStatus(bookingId, 'confirmed')
+      await chatService.syncBooking(bookingId).catch(() => undefined)
+      const res = await bookingsService.getBookings()
+      setAgencyBookings(res.data?.bookings ?? [])
+    } finally {
+      setBookingActionId(null)
+    }
   }
 
-  const handleAcceptRequest = (requestId: string) => {
-    setRequestStatuses((prev) => ({
-      ...prev,
-      [requestId]: 'confirmed',
-    }))
+  const handleRejectRequest = async (bookingId: string) => {
+    setBookingActionId(bookingId)
+    try {
+      await bookingsService.updateBookingStatus(bookingId, 'cancelled')
+      await chatService.syncBooking(bookingId).catch(() => undefined)
+      const res = await bookingsService.getBookings()
+      setAgencyBookings(res.data?.bookings ?? [])
+    } finally {
+      setBookingActionId(null)
+    }
   }
 
-  const handleRejectRequest = (requestId: string) => {
-    setRequestStatuses((prev) => ({
-      ...prev,
-      [requestId]: 'rejected',
-    }))
+  const formatTimeAgo = (iso: string) => {
+    const diff = Date.now() - new Date(iso).getTime()
+    const hours = Math.floor(diff / 3600000)
+    if (hours < 1) return 'Just now'
+    if (hours < 24) return `${hours}h ago`
+    const days = Math.floor(hours / 24)
+    return `${days}d ago`
   }
 
   // Hooks must run before any early return
   const travelerBookingRows = useMemo(() => {
     if (!user || user.role !== USER_ROLES.TRAVELER) return []
     return travelerBookings
-      .filter((b) => b.trip)
+      .filter((b) => b.trip?.id)
       .map((b) => ({ booking: b, trip: b.trip! }))
   }, [user, travelerBookings])
 
@@ -186,20 +270,41 @@ export default function UserProfileClient() {
   }, [])
 
   if (!user) {
-    router.push(ROUTES.LOGIN)
     return null
   }
 
-  const handleSaveProfile = () => {
-    setUser({
-      ...user,
-      fullName: fullName.trim() || user.fullName,
-      city: city.trim() || undefined,
-      avatar: avatar.trim() || undefined,
-      updatedAt: new Date().toISOString(),
-    })
-    setShowSavedBanner(true)
-    setTimeout(() => setShowSavedBanner(false), 3000)
+  const handleSaveProfile = async () => {
+    setProfileSaving(true)
+    setProfileSaveError('')
+    try {
+      const updated = await profileService.updateProfile({
+        fullName: fullName.trim() || user.fullName,
+        city: city.trim(),
+      })
+      setUser(userDtoToEntity(updated))
+      setFullName(updated.fullName)
+      setCity(updated.city ?? '')
+      setShowSavedBanner(true)
+      setTimeout(() => setShowSavedBanner(false), 3000)
+    } catch (err: unknown) {
+      setProfileSaveError(getErrorMessage(err, 'Failed to save profile.'))
+    } finally {
+      setProfileSaving(false)
+    }
+  }
+
+  const handleAvatarUpload = async (file: File) => {
+    setAvatarUploading(true)
+    setProfileSaveError('')
+    try {
+      const { avatarUrl, user: updated } = await profileService.uploadAvatar(file)
+      setAvatar(avatarUrl)
+      setUser(userDtoToEntity(updated))
+      setShowSavedBanner(true)
+      setTimeout(() => setShowSavedBanner(false), 3000)
+    } finally {
+      setAvatarUploading(false)
+    }
   }
 
   const roleLabel =
@@ -210,28 +315,46 @@ export default function UserProfileClient() {
         : 'Admin'
 
   const renderSidebar = () => (
-    <aside className="hidden md:flex md:flex-col md:w-64 md:border-r md:border-slate-200 dark:md:border-slate-800 md:py-8 md:px-6 md:gap-4">
-      <div className="flex items-center gap-3 mb-6">
-        <Avatar src={avatar || user.avatar} name={fullName || user.fullName} size="lg" />
-        <div>
-          <p className="text-slate-900 dark:text-white font-semibold">{fullName || user.fullName}</p>
-          <p className="text-xs text-slate-500 dark:text-slate-400">{user.email}</p>
+    <aside className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 lg:border-r lg:border-slate-200 dark:lg:border-slate-800 lg:py-8 lg:px-6 lg:gap-4 lg:overflow-hidden">
+      <div className="flex items-center gap-3 mb-6 min-w-0">
+        <Avatar
+          src={avatar || user.avatar}
+          name={fullName || user.fullName}
+          size="lg"
+          className="shrink-0"
+        />
+        <div className="min-w-0 flex-1">
+          <p
+            className="text-slate-900 dark:text-white font-semibold truncate"
+            title={fullName || user.fullName}
+          >
+            {fullName || user.fullName}
+          </p>
+          <p
+            className="text-xs text-slate-500 dark:text-slate-400 break-all leading-snug"
+            title={user.email}
+          >
+            {user.email}
+          </p>
         </div>
       </div>
-      <nav className="flex flex-col gap-1 text-sm">
+      <nav className="flex flex-col gap-1 text-sm min-w-0">
         {[
           { id: 'overview', label: 'Overview', icon: 'dashboard' },
           ...(user.role === USER_ROLES.TRAVELER
             ? [
                 { id: 'myTrips', label: 'My Trips', icon: 'flight' as const },
-                { id: 'wishlist', label: 'Wishlist', icon: 'favorite' as const },
+                { id: 'chats', label: 'Trip Chats', icon: 'forum' as const },
               ]
             : []),
           ...(user.role === USER_ROLES.AGENCY
-            ? [{ id: 'trips', label: 'Trips & Requests', icon: 'flight' as const }]
+            ? [
+                { id: 'trips', label: 'Trips & Requests', icon: 'flight' as const },
+                { id: 'chats', label: 'Trip Chats', icon: 'forum' as const },
+              ]
             : []),
           { id: 'personal', label: 'Personal Info', icon: 'badge' },
-          { id: 'wallet', label: 'Wallet', icon: 'account_balance_wallet' },
+          { id: 'wallet', label: user.role === USER_ROLES.AGENCY ? 'Earnings' : 'Wallet', icon: 'account_balance_wallet' },
           { id: 'complaints', label: 'Complaints', icon: 'report' },
           { id: 'settings', label: 'Settings & Security', icon: 'settings' },
         ].map((tab) => (
@@ -239,14 +362,14 @@ export default function UserProfileClient() {
             key={tab.id}
             type="button"
             onClick={() => setActiveTab(tab.id as ProfileTab)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-xl text-left transition-colors ${
+            className={`flex items-center gap-2 px-3 py-2 rounded-none text-left transition-colors min-w-0 ${
               activeTab === tab.id
                 ? 'bg-primary/10 text-primary'
                 : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
-            <span className="material-symbols-outlined text-[18px]">{tab.icon}</span>
-            <span className="font-medium">{tab.label}</span>
+            <span className="material-symbols-outlined text-[18px] shrink-0">{tab.icon}</span>
+            <span className="font-medium truncate">{tab.label}</span>
           </button>
         ))}
       </nav>
@@ -279,7 +402,7 @@ export default function UserProfileClient() {
 
       {/* Traveler dashboard metrics */}
       {user.role === USER_ROLES.TRAVELER && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <StatCard
             title="Trips Completed"
             value={travelerKpis.completed.length}
@@ -317,10 +440,10 @@ export default function UserProfileClient() {
 
       {/* Agency-specific dashboard metrics (moved from old agency dashboard) */}
       {user.role === USER_ROLES.AGENCY && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
           <StatCard
             title="Total Revenue"
-            value="$124,500"
+            value={formatPrice(1_245_000)}
             subtitle="vs. last month"
             icon={<span className="material-symbols-outlined">payments</span>}
             trend={{ value: '+12%', isPositive: true }}
@@ -353,50 +476,49 @@ export default function UserProfileClient() {
   )
 
   const renderPersonalInfo = () => (
-    <div className="space-y-6">
+    <div className="space-y-6 min-w-0">
       <SectionHeader title="Personal Information" />
-      <div className="flex flex-col md:flex-row gap-6 items-start">
-        <div className="flex flex-col items-center gap-3">
-          <Avatar src={avatar || user.avatar} name={fullName || user.fullName} size="xl" />
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => {
-              const url = prompt('Enter a new avatar image URL', avatar || user.avatar || '')
-              if (url !== null) setAvatar(url.trim())
-            }}
-          >
-            <span className="material-symbols-outlined text-[18px]">image</span>
-            Change Avatar
-          </Button>
+      <div className="flex flex-col gap-6 lg:flex-row lg:items-start min-w-0">
+        <div className="w-full lg:w-auto lg:shrink-0 flex justify-center lg:justify-start">
+          <AvatarPicker
+            avatarUrl={avatar || user.avatar}
+            name={fullName || user.fullName}
+            uploading={avatarUploading}
+            onPick={handleAvatarUpload}
+          />
         </div>
-        <div className="flex-1 space-y-4">
-          <RoundedBox padding="lg" className="space-y-4">
+        <div className="flex-1 min-w-0 w-full space-y-4">
+          {profileSaveError && (
+            <AlertBox variant="error" title="Could not save" message={profileSaveError} />
+          )}
+          <RoundedBox padding="lg" className="space-y-4 min-w-0 w-full">
             <Input
               label="Full Name"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700"
+              className="min-w-0 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700"
             />
             <Input
               label="Email Address"
               value={user.email}
               disabled
-              className="bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-dashed border-slate-200 dark:border-slate-700"
+              title={user.email}
+              className="min-w-0 bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-dashed border-slate-200 dark:border-slate-700 break-all"
             />
             <Input
               label="City"
               value={city}
               onChange={(e) => setCity(e.target.value)}
-              className="bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700"
+              className="min-w-0 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700"
             />
             <Button
               variant="primary"
-              className="mt-2"
-              onClick={handleSaveProfile}
+              className="mt-2 w-full sm:w-auto"
+              onClick={() => void handleSaveProfile()}
+              disabled={profileSaving}
             >
               <span className="material-symbols-outlined text-[18px]">save</span>
-              Save Changes
+              {profileSaving ? 'Saving…' : 'Save Changes'}
             </Button>
           </RoundedBox>
         </div>
@@ -437,7 +559,14 @@ export default function UserProfileClient() {
             <Input
               label="Destination"
               value={newTrip.destination}
-              onChange={(e) => setNewTrip((t) => ({ ...t, destination: e.target.value }))}
+              onChange={(e) => {
+                const destination = e.target.value
+                setNewTrip((t) => ({
+                  ...t,
+                  destination,
+                  price: estimateTripPricePkr(t.duration, destination),
+                }))
+              }}
               placeholder="e.g., Berlin, Germany"
             />
             <Input
@@ -457,17 +586,24 @@ export default function UserProfileClient() {
               type="number"
               min={1}
               value={newTrip.duration}
-              onChange={(e) =>
-                setNewTrip((t) => ({ ...t, duration: parseInt(e.target.value) || 1 }))
-              }
+              onChange={(e) => {
+                const duration = parseInt(e.target.value) || 1
+                setNewTrip((t) => ({
+                  ...t,
+                  duration,
+                  price: estimateTripPricePkr(duration, t.destination),
+                }))
+              }}
             />
             <Input
-              label="Price (USD)"
+              label="Price (PKR)"
               type="number"
-              min={0}
-              value={newTrip.price}
+              min={TRIP_PRICE_MIN_PKR}
+              max={TRIP_PRICE_MAX_PKR}
+              step={1000}
+              value={newTrip.price || estimateTripPricePkr(newTrip.duration, newTrip.destination)}
               onChange={(e) =>
-                setNewTrip((t) => ({ ...t, price: parseInt(e.target.value) || 0 }))
+                setNewTrip((t) => ({ ...t, price: clampTripPricePkr(parseInt(e.target.value) || TRIP_PRICE_MIN_PKR) }))
               }
             />
           </div>
@@ -499,7 +635,7 @@ export default function UserProfileClient() {
                 />
                 <label
                   htmlFor="trip-image-upload"
-                  className="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 text-primary rounded-xl cursor-pointer transition-colors"
+                  className="flex items-center gap-2 px-4 py-2 bg-primary/10 hover:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 text-primary rounded-none cursor-pointer transition-colors"
                 >
                   <span className="material-symbols-outlined text-[20px]">add_photo_alternate</span>
                   <span className="text-sm font-medium">Add Images</span>
@@ -521,10 +657,10 @@ export default function UserProfileClient() {
 
               {/* Image Previews */}
               {tripImages.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                   {tripImages.map((imageUrl, index) => (
                     <div key={index} className="relative group">
-                      <div className="aspect-video rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                      <div className="aspect-video rounded-none overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                         <img
                           src={imageUrl}
                           alt={`Trip image ${index + 1}`}
@@ -538,7 +674,7 @@ export default function UserProfileClient() {
                       </div>
                       <button
                         onClick={() => setTripImages((prev) => prev.filter((_, i) => i !== index))}
-                        className="absolute top-1 right-1 p-1 bg-red-500 hover:bg-red-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="absolute top-1 right-1 p-1 bg-red-500 hover:bg-red-600 text-white rounded-none opacity-0 group-hover:opacity-100 transition-opacity"
                         type="button"
                       >
                         <span className="material-symbols-outlined text-[16px]">close</span>
@@ -694,50 +830,46 @@ export default function UserProfileClient() {
                   </div>
                 </div>
 
-                {/* Placeholder: travelers who requested this trip */}
+                {/* Booking requests for this trip */}
                 <div className="space-y-2">
                   <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                    Recent Requests (demo)
+                    Booking Requests
                   </p>
                   <div className="space-y-2">
-                    <BookingCard
-                      id={`${trip.id}-req-1`}
-                      traveler={{
-                        id: 'traveler-1',
-                        name: 'Corporate Team A',
-                        avatar:
-                          'https://lh3.googleusercontent.com/aida-public/AB6AXuBzUsDXs7q9xlpRA5MQqiQ2l7826rinDU44Mrntu0P9mfbCY8ULA5qLYOlNHtKweEyQPBR35czzP2S3C7zcCmwhJ5KZAea43ZUUwOIcGGQ3vO8Bbjx69-7SrY8AJOA8aHxKsAyGVainntUTpd0pZQw1u6GWqg9XwNyIo6axrB35iW9Xqn1fwK459d4gKM6uRoklapacCDyusQGR-pIveDQon59K-I2JFLdHt5YOva_G7uqh2TlZN7o8rcyPe7m5eOxJvn4Os8Xy4fI',
-                        status: 'online',
-                      }}
-                      trip={{
-                        destination: trip.destination,
-                        dates: `${trip.startDate} – ${trip.endDate}`,
-                      }}
-                      status={requestStatuses[`${trip.id}-req-1`] || 'pending'}
-                      timeAgo="2h ago"
-                      showActions={true}
-                      onAccept={() => handleAcceptRequest(`${trip.id}-req-1`)}
-                      onReject={() => handleRejectRequest(`${trip.id}-req-1`)}
-                    />
-                    <BookingCard
-                      id={`${trip.id}-req-2`}
-                      traveler={{
-                        id: 'traveler-2',
-                        name: 'Startup Group B',
-                        avatar:
-                          'https://lh3.googleusercontent.com/aida-public/AB6AXuATYwzdYgoDurSA5EH6Pm04tANR6UPaa_aOVipElVmXyAgkCf4DF_fqxYhWUDLfFqdHsn07JHCSqpSb2DqcLvzruuNL_hoxCxAvaeFAndRVP789U07vC7mviQ96GGOxeT2p5S_Kx1XeheYnsHormkDpxC4zHE--WfkLa2Vnbl2GkbT5BaU5azS1ZivjD0wBZtLu_JJ6_6FXL_eUm5MxaBtUoKFXdTZqYby-hETTYruaCb6FX7sGTP2NiDoBk4n78yA4JmkLrpLS3PE',
-                        status: 'online',
-                      }}
-                      trip={{
-                        destination: trip.destination,
-                        dates: `${trip.startDate} – ${trip.endDate}`,
-                      }}
-                      status={requestStatuses[`${trip.id}-req-2`] || 'confirmed'}
-                      timeAgo="1d ago"
-                      showActions={true}
-                      onAccept={() => handleAcceptRequest(`${trip.id}-req-2`)}
-                      onReject={() => handleRejectRequest(`${trip.id}-req-2`)}
-                    />
+                    {agencyBookings.filter((b) => b.trip?.id === trip.id).length === 0 && (
+                      <p className="text-sm text-slate-500 dark:text-slate-400">No requests yet for this trip.</p>
+                    )}
+                    {agencyBookings
+                      .filter((b) => b.trip?.id === trip.id)
+                      .map((booking) => (
+                        <BookingCard
+                          key={booking.id}
+                          id={booking.id}
+                          traveler={{
+                            id: booking.traveler.id,
+                            name: booking.traveler.fullName,
+                            avatar: booking.traveler.avatar,
+                            status: 'online',
+                          }}
+                          trip={{
+                            destination: trip.destination,
+                            dates: `${booking.startDate} – ${booking.endDate}`,
+                          }}
+                          status={
+                            booking.status === 'pending'
+                              ? 'pending'
+                              : booking.status === 'confirmed'
+                                ? 'confirmed'
+                                : booking.status === 'cancelled'
+                                  ? 'rejected'
+                                  : booking.status
+                          }
+                          timeAgo={formatTimeAgo(booking.createdAt)}
+                          showActions={booking.status === 'pending'}
+                          onAccept={() => void handleAcceptRequest(booking.id)}
+                          onReject={() => void handleRejectRequest(booking.id)}
+                        />
+                      ))}
                   </div>
                 </div>
               </RoundedBox>
@@ -845,117 +977,180 @@ export default function UserProfileClient() {
     )
   }
 
-  const renderWishlist = () => {
-    const items = wishlist
-      .map((slug) => wishlistTrips.find((t) => t.slug === slug))
-      .filter(Boolean) as TripDTO[]
-
-    return (
-      <div className="space-y-6">
-        <SectionHeader title="Wishlist" />
-
-        {items.length === 0 ? (
-          <RoundedBox padding="lg" className="text-center py-10">
-            <p className="text-slate-600 dark:text-slate-400">Your wishlist is empty.</p>
-            <p className="text-slate-500 dark:text-slate-500 text-sm mt-1">
-              Tap the heart on any trip to save it here.
-            </p>
-            <Button variant="primary" className="mt-4" onClick={() => router.push(ROUTES.TRIPS)}>
-              <span className="material-symbols-outlined text-[18px]">explore</span>
-              Browse Trips
-            </Button>
-          </RoundedBox>
-        ) : (
-          <div className="space-y-3">
-            {items.map((trip) => (
-              <RoundedBox key={trip.id} padding="lg" className="flex items-center justify-between gap-4">
-                <div className="min-w-0">
-                  <p className="text-slate-900 dark:text-white font-semibold truncate">{trip.title}</p>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 truncate">
-                    {trip.destination} • {trip.startDate} – {trip.endDate} • {trip.agency.name}
-                  </p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 px-3"
-                    onClick={() => router.push(`/trips/${trip.slug}`)}
-                  >
-                    View
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-9 px-3 border-red-500 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                    onClick={() => removeFromWishlist(trip.slug)}
-                  >
-                    Remove
-                  </Button>
-                </div>
-              </RoundedBox>
-            ))}
-          </div>
-        )}
-      </div>
-    )
+  const formatWalletTimeAgo = (iso: string) => {
+    const diff = Date.now() - new Date(iso).getTime()
+    const hours = Math.floor(diff / 3600000)
+    if (hours < 1) return 'Just now'
+    if (hours < 24) return `${hours}h ago`
+    const days = Math.floor(hours / 24)
+    if (days < 7) return `${days}d ago`
+    return new Date(iso).toLocaleDateString()
   }
 
-  const renderWallet = () => (
-    <div className="space-y-6">
-      <SectionHeader title="Wallet" />
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <StatCard
-          title="Wallet Balance"
-          value="$1,250"
-          subtitle="Available to spend"
-          icon={<span className="material-symbols-outlined">account_balance_wallet</span>}
-          variant="highlight"
-          className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/10 dark:to-emerald-500/5 border-emerald-200 dark:border-emerald-500/20"
-        />
-        <StatCard
-          title="Upcoming Payments"
-          value="$420"
-          subtitle="For booked trips"
-          icon={<span className="material-symbols-outlined">payments</span>}
-        />
-        <StatCard
-          title="Total Spent"
-          value="$8,900"
-          subtitle="Across all trips"
-          icon={<span className="material-symbols-outlined">bar_chart</span>}
-        />
-      </div>
+  const handleDemoWalletTopUp = async () => {
+    setWalletSeeding(true)
+    setWalletError('')
+    try {
+      const data = await walletService.seedDemoBalance(10000)
+      setWalletSummary(data)
+    } catch (err: unknown) {
+      setWalletError(getErrorMessage(err, 'Failed to add demo balance.'))
+    } finally {
+      setWalletSeeding(false)
+    }
+  }
 
-      <RoundedBox padding="lg" className="space-y-4">
-        <h3 className="text-slate-900 dark:text-white font-semibold">Recent Transactions</h3>
-        <div className="space-y-3 text-sm">
-          {[
-            { id: 1, title: 'Bali Retreat Deposit', amount: '-$300', date: '2 days ago', type: 'debit' },
-            { id: 2, title: 'Refund - Tokyo Conference', amount: '+$120', date: '1 week ago', type: 'credit' },
-            { id: 3, title: 'London Summit Booking', amount: '-$980', date: '3 weeks ago', type: 'debit' },
-          ].map((tx) => (
-            <div
-              key={tx.id}
-              className="flex items-center justify-between py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-800/60"
-            >
-              <div>
-                <p className="text-slate-900 dark:text-white font-medium">{tx.title}</p>
-                <p className="text-xs text-slate-500 dark:text-slate-400">{tx.date}</p>
+  const renderWallet = () => {
+    const isAgency = walletSummary?.accountType === 'agency'
+
+    return (
+    <div className="space-y-6">
+      <SectionHeader title={isAgency ? 'Agency Earnings' : 'Wallet'} />
+
+      {walletError && <AlertBox variant="error" title="Wallet error" message={walletError} />}
+
+      {walletLoading && (
+        <p className="text-sm text-slate-500 dark:text-slate-400">Loading wallet…</p>
+      )}
+
+      {!walletLoading && walletSummary && isAgency && (
+        <>
+          <AlertBox
+            variant="info"
+            title="How agency earnings work"
+            message="Travelers pay when they book. The amount is added to your agency wallet only after you accept the booking request."
+          />
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <StatCard
+              title="Available Balance"
+              value={formatPrice(walletSummary.balance)}
+              subtitle="Confirmed booking payouts"
+              icon={<span className="material-symbols-outlined">account_balance_wallet</span>}
+              variant="highlight"
+              className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/10 dark:to-emerald-500/5 border-emerald-200 dark:border-emerald-500/20"
+            />
+            <StatCard
+              title="Pending Requests"
+              value={formatPrice(walletSummary.pendingEarnings ?? 0)}
+              subtitle="Awaiting your acceptance"
+              icon={<span className="material-symbols-outlined">hourglass_top</span>}
+            />
+            <StatCard
+              title="Total Earned"
+              value={formatPrice(walletSummary.totalEarned ?? 0)}
+              subtitle="From accepted bookings"
+              icon={<span className="material-symbols-outlined">payments</span>}
+            />
+          </div>
+
+          <RoundedBox padding="lg" className="space-y-4">
+            <h3 className="text-slate-900 dark:text-white font-semibold">Recent Earnings</h3>
+            {walletSummary.transactions.length === 0 ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400">
+                No earnings yet. Accept a booking request to receive payment.
+              </p>
+            ) : (
+              <div className="space-y-3 text-sm">
+                {walletSummary.transactions.map((tx) => (
+                    <div
+                      key={tx.id}
+                      className="flex items-center justify-between py-2 px-3 rounded-none bg-slate-50 dark:bg-slate-800/60"
+                    >
+                      <div>
+                        <p className="text-slate-900 dark:text-white font-medium">{tx.description}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {formatWalletTimeAgo(tx.createdAt)}
+                        </p>
+                      </div>
+                      <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
+                        +{formatPrice(Math.abs(tx.amount))}
+                      </div>
+                    </div>
+                  ))}
               </div>
-              <div
-                className={`text-sm font-semibold ${
-                  tx.type === 'credit' ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-900 dark:text-white'
-                }`}
-              >
-                {tx.amount}
+            )}
+          </RoundedBox>
+        </>
+      )}
+
+      {!walletLoading && walletSummary && !isAgency && (
+        <>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <StatCard
+              title="Wallet Balance"
+              value={formatPrice(walletSummary.balance)}
+              subtitle="Available to spend"
+              icon={<span className="material-symbols-outlined">account_balance_wallet</span>}
+              variant="highlight"
+              className="bg-gradient-to-br from-emerald-50 to-emerald-100/50 dark:from-emerald-500/10 dark:to-emerald-500/5 border-emerald-200 dark:border-emerald-500/20"
+            />
+            <StatCard
+              title="Upcoming Payments"
+              value={formatPrice(walletSummary.upcomingPayments)}
+              subtitle="For confirmed trips"
+              icon={<span className="material-symbols-outlined">payments</span>}
+            />
+            <StatCard
+              title="Total Spent"
+              value={formatPrice(walletSummary.totalSpent)}
+              subtitle="Across all trips"
+              icon={<span className="material-symbols-outlined">bar_chart</span>}
+            />
+          </div>
+
+          {process.env.NODE_ENV === 'development' && (
+            <RoundedBox padding="md" className="space-y-3">
+              <AlertBox
+                variant="info"
+                title="Demo mode"
+                message="Real JazzCash / EasyPaisa top-ups are not connected yet. Use the button below to add test PKR for booking trips."
+              />
+              <Button variant="outline" onClick={handleDemoWalletTopUp} disabled={walletSeeding}>
+                {walletSeeding ? 'Adding…' : 'Add Rs. 10,000 (demo)'}
+              </Button>
+            </RoundedBox>
+          )}
+
+          <RoundedBox padding="lg" className="space-y-4">
+            <h3 className="text-slate-900 dark:text-white font-semibold">Recent Transactions</h3>
+            {walletSummary.transactions.length === 0 ? (
+              <p className="text-sm text-slate-500 dark:text-slate-400">No transactions yet.</p>
+            ) : (
+              <div className="space-y-3 text-sm">
+                {walletSummary.transactions.map((tx) => {
+                  const isCredit = tx.amount > 0
+                  return (
+                    <div
+                      key={tx.id}
+                      className="flex items-center justify-between py-2 px-3 rounded-none bg-slate-50 dark:bg-slate-800/60"
+                    >
+                      <div>
+                        <p className="text-slate-900 dark:text-white font-medium">{tx.description}</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          {formatWalletTimeAgo(tx.createdAt)}
+                        </p>
+                      </div>
+                      <div
+                        className={`text-sm font-semibold ${
+                          isCredit
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-slate-900 dark:text-white'
+                        }`}
+                      >
+                        {isCredit ? '+' : ''}
+                        {formatPrice(Math.abs(tx.amount))}
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            </div>
-          ))}
-        </div>
-      </RoundedBox>
+            )}
+          </RoundedBox>
+        </>
+      )}
     </div>
-  )
+    )
+  }
 
   const renderComplaints = () => (
     <div className="space-y-6">
@@ -998,7 +1193,7 @@ export default function UserProfileClient() {
           ].map((ticket) => (
             <div
               key={ticket.id}
-              className="flex items-center justify-between py-2 px-3 rounded-xl bg-slate-50 dark:bg-slate-800/60"
+              className="flex items-center justify-between py-2 px-3 rounded-none bg-slate-50 dark:bg-slate-800/60"
             >
               <div>
                 <p className="text-slate-900 dark:text-white font-medium">{ticket.subject}</p>
@@ -1007,7 +1202,7 @@ export default function UserProfileClient() {
                 </p>
               </div>
               <span
-                className={`px-2 py-1 rounded-full text-xs font-semibold ${
+                className={`px-2 py-1 rounded-none text-xs font-semibold ${
                   ticket.status === 'Resolved'
                     ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300'
                     : 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300'
@@ -1022,22 +1217,158 @@ export default function UserProfileClient() {
     </div>
   )
 
+  const handleChangePassword = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!user?.email) return
+
+    setPasswordChangeLoading(true)
+    setPasswordChangeError('')
+    setPasswordChangeSuccess(false)
+
+    try {
+      await authService.changePassword({
+        email: user.email,
+        currentPassword,
+        password: newPassword,
+        confirmPassword: confirmNewPassword,
+      })
+      setPasswordChangeSuccess(true)
+      setCurrentPassword('')
+      setNewPassword('')
+      setConfirmNewPassword('')
+      setShowPasswordForm(false)
+    } catch (err: unknown) {
+      setPasswordChangeError(getErrorMessage(err, 'Could not update password.'))
+    } finally {
+      setPasswordChangeLoading(false)
+    }
+  }
+
   const renderSettings = () => (
     <div className="space-y-6">
       <SectionHeader title="Settings & Security" />
+
+      {passwordChangeSuccess && (
+        <AlertBox
+          variant="success"
+          title="Password updated"
+          message="Your password has been changed successfully."
+        />
+      )}
+
       <RoundedBox padding="lg" className="space-y-4">
         <h3 className="text-slate-900 dark:text-white font-semibold">Security</h3>
         <p className="text-sm text-slate-600 dark:text-slate-400">
-          Manage your login and security settings. (This demo does not implement real password changes yet.)
+          Update your account password. You will stay signed in on this device.
         </p>
-        <Button
-          variant="outline"
-          className="w-full md:w-auto"
-          onClick={() => alert('In a real app, this would open a password change flow.')}
-        >
-          <span className="material-symbols-outlined text-[18px]">lock_reset</span>
-          Change Password
-        </Button>
+
+        {!usesEmailAuth ? (
+          <AlertBox
+            variant="info"
+            title="Google sign-in"
+            message="This account uses Google sign-in. Manage your password through your Google account, or use Forgot Password on the login page to add an email password."
+          />
+        ) : (
+          <>
+            {!showPasswordForm ? (
+              <Button
+                variant="outline"
+                className="w-full md:w-auto"
+                onClick={() => {
+                  setShowPasswordForm(true)
+                  setPasswordChangeError('')
+                  setPasswordChangeSuccess(false)
+                }}
+              >
+                <span className="material-symbols-outlined text-[18px]">lock_reset</span>
+                Change Password
+              </Button>
+            ) : (
+              <form className="space-y-4 max-w-md" onSubmit={handleChangePassword}>
+                <Input
+                  label="Current Password"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter current password"
+                  required
+                />
+                <Input
+                  label="New Password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="At least 6 characters"
+                  required
+                  minLength={6}
+                />
+                <Input
+                  label="Confirm New Password"
+                  type="password"
+                  value={confirmNewPassword}
+                  onChange={(e) => setConfirmNewPassword(e.target.value)}
+                  placeholder="Re-enter new password"
+                  required
+                  minLength={6}
+                />
+
+                {passwordChangeError && (
+                  <AlertBox variant="error" title="Could not update password" message={passwordChangeError} />
+                )}
+
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Button type="submit" disabled={passwordChangeLoading} className="w-full sm:w-auto">
+                    {passwordChangeLoading ? 'Updating…' : 'Update Password'}
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full sm:w-auto"
+                    disabled={passwordChangeLoading}
+                    onClick={() => {
+                      setShowPasswordForm(false)
+                      setCurrentPassword('')
+                      setNewPassword('')
+                      setConfirmNewPassword('')
+                      setPasswordChangeError('')
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </form>
+            )}
+          </>
+        )}
+      </RoundedBox>
+
+      <RoundedBox padding="lg" className="space-y-4">
+        <h3 className="text-slate-900 dark:text-white font-semibold">Display Currency</h3>
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          Trip and wallet prices are stored in PKR. Choose how amounts are shown across the app.
+        </p>
+
+        {currencySaved && (
+          <AlertBox variant="success" title="Currency updated" message="Prices now display in your selected currency." />
+        )}
+
+        <div className="max-w-md space-y-2">
+          <label htmlFor="display-currency" className="block text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Preferred currency
+          </label>
+          <CurrencySelect
+            id="display-currency"
+            value={currency}
+            onChange={(code) => {
+              setCurrency(code)
+              setCurrencySaved(true)
+              window.setTimeout(() => setCurrencySaved(false), 2500)
+            }}
+          />
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Example trip price: {formatPrice(55_000)} (converted from Rs. 55,000 at approximate rates).
+          </p>
+        </div>
       </RoundedBox>
 
       <RoundedBox padding="lg" className="space-y-4">
@@ -1057,6 +1388,13 @@ export default function UserProfileClient() {
     </div>
   )
 
+  const renderChats = () => (
+    <div className="space-y-4">
+      <SectionHeader title="Trip Chats" subtitle="Group chats for confirmed bookings" />
+      <TripChatsPanel initialGroupId={searchParams?.get('group')} />
+    </div>
+  )
+
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'personal':
@@ -1065,8 +1403,8 @@ export default function UserProfileClient() {
         return renderAgencyTrips()
       case 'myTrips':
         return renderTravelerTrips()
-      case 'wishlist':
-        return renderWishlist()
+      case 'chats':
+        return renderChats()
       case 'wallet':
         return renderWallet()
       case 'complaints':
@@ -1105,25 +1443,27 @@ export default function UserProfileClient() {
         variant="light"
         showThemeToggle={false}
         rightAction={
-          <div className="flex items-center gap-2">
-            <NavButton
-              href={dashboardHref}
-              label="Dashboard"
-              icon="dashboard"
-              variant="default"
-            />
-            <NavButton
-              href={ROUTES.TRIPS}
-              label="Browse Trips"
-              icon="explore"
-              variant="default"
-            />
-            <NavButton
-              href={profileHref}
-              label="Profile"
-              icon="person"
-              variant="default"
-            />
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            <div className="hidden sm:flex items-center gap-1 sm:gap-2">
+              <NavButton
+                href={dashboardHref}
+                label="Dashboard"
+                icon="dashboard"
+                variant="default"
+              />
+              <NavButton
+                href={ROUTES.TRIPS}
+                label="Browse Trips"
+                icon="explore"
+                variant="default"
+              />
+              <NavButton
+                href={profileHref}
+                label="Profile"
+                icon="person"
+                variant="default"
+              />
+            </div>
             <ThemeToggle />
             <LogoutButton />
           </div>
@@ -1140,15 +1480,17 @@ export default function UserProfileClient() {
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto flex flex-col md:flex-row md:gap-6 md:p-6">
+      <main className="max-w-7xl mx-auto w-full flex flex-col lg:flex-row lg:gap-6 lg:p-6 min-w-0 overflow-x-hidden">
         {renderSidebar()}
-        <section className="flex-1 px-4 pt-4 pb-8 md:px-0 md:pt-4 space-y-6">
-          {/* Mobile tabs */}
-          <div className="md:hidden flex overflow-x-auto gap-2 pb-2 -mx-4 px-4 border-b border-slate-200 dark:border-slate-800">
+        <section className="flex-1 min-w-0 px-4 pt-4 pb-8 lg:px-0 lg:pt-4 space-y-6">
+          {/* Mobile / tablet tabs (sidebar from lg) */}
+          <div className="lg:hidden flex overflow-x-auto gap-2 pb-2 -mx-4 px-4 border-b border-slate-200 dark:border-slate-800 scrollbar-tripster">
             {[
               { id: 'overview', label: 'Overview' },
               ...(user.role === USER_ROLES.TRAVELER ? [{ id: 'myTrips', label: 'My Trips' }] : []),
-              ...(user.role === USER_ROLES.TRAVELER ? [{ id: 'wishlist', label: 'Wishlist' }] : []),
+              ...(user.role === USER_ROLES.TRAVELER || user.role === USER_ROLES.AGENCY
+                ? [{ id: 'chats', label: 'Trip Chats' }]
+                : []),
               ...(user.role === USER_ROLES.AGENCY ? [{ id: 'trips', label: 'Trips' }] : []),
               { id: 'personal', label: 'Personal' },
               { id: 'wallet', label: 'Wallet' },
@@ -1159,7 +1501,7 @@ export default function UserProfileClient() {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id as ProfileTab)}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold whitespace-nowrap border ${
+                className={`px-3 py-1.5 rounded-none text-xs font-semibold whitespace-nowrap border ${
                   activeTab === tab.id
                     ? 'bg-primary text-white border-primary'
                     : 'bg-white/80 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
@@ -1181,10 +1523,10 @@ export default function UserProfileClient() {
           onClick={() => setTravelerKpiModal(null)}
         >
           <div
-            className="w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700"
+            className="w-full max-w-3xl max-h-[90vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-none shadow-2xl border border-slate-200 dark:border-slate-700"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-5 py-4 flex items-start justify-between gap-3 rounded-t-2xl">
+            <div className="sticky top-0 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-5 py-4 flex items-start justify-between gap-3 rounded-none">
               <div>
                 <h2 className="text-lg font-bold text-slate-900 dark:text-white">
                   {modalConfig[travelerKpiModal].title}
@@ -1195,7 +1537,7 @@ export default function UserProfileClient() {
               </div>
               <button
                 type="button"
-                className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                className="p-2 rounded-none hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 onClick={() => setTravelerKpiModal(null)}
               >
                 <span className="material-symbols-outlined text-slate-600 dark:text-slate-300">close</span>

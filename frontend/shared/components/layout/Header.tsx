@@ -14,6 +14,8 @@ interface HeaderProps {
   variant?: 'light' | 'dark'
   /** When set, the title becomes a link (e.g. to home). */
   titleHref?: string
+  /** When set, clicking the title runs this instead of navigating. */
+  titleOnClick?: () => void
   leftAction?: ReactNode
   rightAction?: ReactNode
   showThemeToggle?: boolean
@@ -26,6 +28,7 @@ export function Header({
   showLogo = false,
   variant = 'light',
   titleHref,
+  titleOnClick,
   leftAction,
   rightAction,
   showThemeToggle = true,
@@ -45,7 +48,7 @@ export function Header({
         <div className="flex items-center gap-3">
           {leftAction}
           {showLogo ? (
-            <Link href="/" className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-lg">
+            <Link href="/" className="focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-none">
               <Logo variant={variant} />
             </Link>
           ) : (
@@ -63,7 +66,26 @@ export function Header({
                 </span>
               )}
               {title && (
-                titleHref ? (
+                titleOnClick ? (
+                  <button
+                    type="button"
+                    onClick={titleOnClick}
+                    className="text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded-none"
+                    aria-label="Refresh page"
+                  >
+                    <h2
+                      className={cn(
+                        'text-2xl sm:text-3xl font-extrabold leading-tight tracking-tight flex items-center gap-1 hover:opacity-90 transition-opacity cursor-pointer',
+                        variant === 'light'
+                          ? 'text-slate-900 dark:text-white'
+                          : 'text-white'
+                      )}
+                    >
+                      {title}
+                      {variant === 'light' && <span className="text-primary">.</span>}
+                    </h2>
+                  </button>
+                ) : titleHref ? (
                   <Link href={titleHref}>
                     <h2
                       className={cn(

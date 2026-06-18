@@ -11,7 +11,7 @@ export function Logo({ className, showTagline = true, variant = 'light' }: LogoP
     <div className={cn('flex items-center gap-3', className)}>
       <div
         className={cn(
-          'p-2 rounded-xl border',
+          'p-2 rounded-none border',
           variant === 'light'
             ? 'bg-white/10 backdrop-blur-md border-white/20'
             : 'bg-slate-100 border-slate-200'

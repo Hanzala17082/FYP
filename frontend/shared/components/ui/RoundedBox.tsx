@@ -6,7 +6,7 @@ export type BoxVariant = 'default' | 'dark' | 'glass' | 'light' | 'outline'
 interface RoundedBoxProps extends HTMLAttributes<HTMLDivElement> {
   children: ReactNode
   variant?: BoxVariant
-  rounded?: 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full'
+  rounded?: 'none' | 'sm' | 'md' | 'lg' | 'xl' | '2xl' | 'full'
   padding?: 'none' | 'sm' | 'md' | 'lg' | 'xl'
   shadow?: 'none' | 'sm' | 'md' | 'lg' | 'xl'
 }
@@ -21,12 +21,13 @@ const variantClasses = {
 }
 
 const roundedClasses = {
-  sm: 'rounded-lg',
-  md: 'rounded-xl',
-  lg: 'rounded-2xl',
-  xl: 'rounded-3xl',
-  '2xl': 'rounded-[2rem]',
-  full: 'rounded-full',
+  none: 'rounded-none',
+  sm: 'rounded-none',
+  md: 'rounded-none',
+  lg: 'rounded-none',
+  xl: 'rounded-none',
+  '2xl': 'rounded-none',
+  full: 'rounded-none',
 }
 
 const paddingClasses = {
@@ -48,7 +49,7 @@ const shadowClasses = {
 export function RoundedBox({
   children,
   variant = 'default',
-  rounded = 'lg',
+  rounded = 'none',
   padding = 'md',
   shadow = 'sm',
   className,

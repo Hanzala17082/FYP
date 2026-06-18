@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
+import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useParams, useSearchParams } from 'next/navigation'
 import { Header } from '@/shared/components/layout'
@@ -12,7 +13,13 @@ import { useAuth } from '@/shared/contexts/AuthContext'
 import { cn } from '@/shared/utils/cn'
 import { tripsService } from '@/services/trips.service'
 import { getErrorMessage } from '@/shared/utils/error-message'
+import { useCurrency } from '@/shared/contexts/CurrencyContext'
 import type { TripDTO } from '@/types/api/trips.types'
+
+const BookTripModal = dynamic(
+  () => import('@/shared/components/bookings/BookTripModal').then((m) => m.BookTripModal),
+  { ssr: false }
+)
 
 interface TripDetailClientProps {
   slug?: string
@@ -32,6 +39,7 @@ export default function TripDetailClient({ slug: slugProp }: TripDetailClientPro
   const params = useParams()
   const searchParams = useSearchParams()
   const { user } = useAuth()
+  const { formatPrice } = useCurrency()
   const fromDashboard = searchParams?.get('from') === 'dashboard'
   const slug = (params?.slug ?? slugProp) as string | undefined
   const [trip, setTrip] = useState<TripDTO | null>(null)
@@ -39,6 +47,7 @@ export default function TripDetailClient({ slug: slugProp }: TripDetailClientPro
   const [error, setError] = useState<string | null>(null)
   const [apiStatus, setApiStatus] = useState<number | null>(null) // 404, 0 = network error, etc.
   const [showAuthModal, setShowAuthModal] = useState(false)
+  const [showBookModal, setShowBookModal] = useState(false)
 
   useEffect(() => {
     const rawSlug = slug ?? params?.slug
@@ -277,18 +286,18 @@ export default function TripDetailClient({ slug: slugProp }: TripDetailClientPro
               {recreationalActivities.map((activity, index) => (
                 <div
                   key={index}
-                  className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-xl border border-slate-200 dark:border-slate-600"
+                  className="p-4 bg-slate-50 dark:bg-slate-700/50 rounded-none border border-slate-200 dark:border-slate-600"
                 >
                   <div className="flex items-start justify-between mb-2">
                     <h3 className="font-semibold text-slate-900 dark:text-white">{activity.name}</h3>
                     {activity.included ? (
-                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold rounded-lg">
+                      <span className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs font-semibold rounded-none">
                         Included
                       </span>
                     ) : (
                       activity.additionalCost != null && (
-                        <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-semibold rounded-lg">
-                          +${activity.additionalCost}
+                        <span className="px-2 py-1 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400 text-xs font-semibold rounded-none">
+                          +{formatPrice(Number(activity.additionalCost))}
                         </span>
                       )
                     )}
@@ -352,7 +361,7 @@ export default function TripDetailClient({ slug: slugProp }: TripDetailClientPro
             <div>
               <p className="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wider">Starting from</p>
               <p className="text-3xl font-bold text-slate-900 dark:text-white">
-                ${Number(trip.price).toLocaleString()}
+                {formatPrice(Number(trip.price))}
               </p>
             </div>
           </div>
@@ -363,8 +372,10 @@ export default function TripDetailClient({ slug: slugProp }: TripDetailClientPro
             onClick={() => {
               if (!user) {
                 setShowAuthModal(true)
+              } else if (user.role === USER_ROLES.TRAVELER) {
+                setShowBookModal(true)
               } else {
-                // TODO: open booking flow when implemented
+                setShowAuthModal(true)
               }
             }}
           >
@@ -383,7 +394,7 @@ export default function TripDetailClient({ slug: slugProp }: TripDetailClientPro
           aria-labelledby="auth-modal-title"
         >
           <div
-            className="bg-white dark:bg-slate-800 rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden ring-1 ring-slate-200 dark:ring-slate-600"
+            className="bg-white dark:bg-slate-800 rounded-none shadow-2xl w-full max-w-sm overflow-hidden ring-1 ring-slate-200 dark:ring-slate-600"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="p-6">
@@ -394,7 +405,7 @@ export default function TripDetailClient({ slug: slugProp }: TripDetailClientPro
                 <button
                   type="button"
                   onClick={() => setShowAuthModal(false)}
-                  className="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400"
+                  className="p-2 rounded-none hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400"
                   aria-label="Close"
                 >
                   <span className="material-symbols-outlined">close</span>
@@ -424,6 +435,10 @@ export default function TripDetailClient({ slug: slugProp }: TripDetailClientPro
             </div>
           </div>
         </div>
+      )}
+
+      {trip && showBookModal && (
+        <BookTripModal isOpen={showBookModal} trip={trip} onClose={() => setShowBookModal(false)} />
       )}
     </div>
   )

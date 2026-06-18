@@ -1,6 +1,7 @@
 import Link from 'next/link'
-import { useEffect, useMemo, useState } from 'react'
+import { memo, useEffect, useMemo, useState } from 'react'
 import { cn } from '@/shared/utils/cn'
+import { useCurrency } from '@/shared/contexts/CurrencyContext'
 import { StatusBadge } from './StatusBadge'
 import { Button } from './Button'
 
@@ -8,6 +9,7 @@ interface TripCardProps {
   id: string
   title: string
   agency: { name: string; verified?: boolean }
+  destination?: string
   startDate: string
   endDate: string
   duration: number
@@ -17,16 +19,19 @@ interface TripCardProps {
   /** Use for /trips/[slug] link; falls back to id if not set */
   slug?: string
   badge?: { text: string; status: 'pending' | 'confirmed' | 'trending' | 'approved' | 'active' | 'completed' | 'cancelled' }
-  wishlistAction?: { active: boolean; onToggle: () => void }
   /** When set, card opens this modal instead of navigating to detail page */
   onSelectTrip?: (slug: string) => void
   className?: string
 }
 
-export function TripCard({
+const cardShellClass =
+  'group flex h-full flex-col overflow-hidden rounded-[24px] bg-white p-4 shadow-[0_10px_40px_rgba(15,23,42,0.08)] transition-all duration-300 dark:bg-[#1a1a1a] dark:shadow-[0_12px_40px_rgba(0,0,0,0.45)] border border-slate-100 dark:border-slate-800/80 hover:border-primary/35 hover:shadow-[0_16px_48px_rgba(19,127,236,0.15)]'
+
+function TripCardInner({
   id,
   title,
   agency,
+  destination,
   startDate,
   endDate,
   duration,
@@ -35,13 +40,12 @@ export function TripCard({
   images,
   slug,
   badge,
-  wishlistAction,
   onSelectTrip,
   className,
 }: TripCardProps) {
-  // Safety check for agency
+  const { formatPrice } = useCurrency()
+
   if (!agency) {
-    console.warn('TripCard: agency is missing for trip', id)
     return null
   }
 
@@ -53,9 +57,6 @@ export function TripCard({
 
   const hasCarousel = allImages.length > 1
 
-  // We use a "track index" with clones for smooth infinite sliding:
-  // slides = [last, ...images, first]
-  // start at 1 (the first real slide)
   const slides = useMemo(() => {
     if (!hasCarousel) return allImages
     const first = allImages[0]
@@ -68,7 +69,6 @@ export function TripCard({
   const [isPaused, setIsPaused] = useState(false)
 
   useEffect(() => {
-    // Reset when images change
     if (!hasCarousel) {
       setTrackIndex(0)
       setIsAnimating(false)
@@ -79,10 +79,8 @@ export function TripCard({
     setIsAnimating(false)
   }, [hasCarousel, allImages.length])
 
-  // Slower autoplay
   useEffect(() => {
-    if (!hasCarousel) return
-    if (isPaused) return
+    if (!hasCarousel || isPaused) return
 
     const interval = setInterval(() => {
       setIsAnimating(true)
@@ -94,7 +92,6 @@ export function TripCard({
 
   const activeIndex = useMemo(() => {
     if (!hasCarousel) return 0
-    // trackIndex: 1..len maps to 0..len-1
     const logical = trackIndex - 1
     const len = allImages.length
     return ((logical % len) + len) % len
@@ -113,70 +110,61 @@ export function TripCard({
   }
 
   const tripSlug = slug ?? id
-  const content = (
-    <>
-      <div
-        className="relative h-52 w-full overflow-hidden"
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
-      >
-        {badge && (
-          <div className="absolute top-3 left-3 z-10">
-            <StatusBadge status={badge.status} size="sm" />
-          </div>
-        )}
+  const destinationLabel = destination?.split(',')[0]?.trim()
 
-        {wishlistAction && (
+  const imageBlock = (
+    <div
+      className="relative aspect-[4/3] w-full shrink-0 overflow-hidden rounded-[20px] bg-slate-100 dark:bg-slate-900"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      {badge && (
+        <div className="absolute left-3 top-3 z-10">
+          <StatusBadge status={badge.status} size="sm" />
+        </div>
+      )}
+
+      {destinationLabel && (
+        <div className="absolute right-3 top-3 z-10 flex max-w-[55%] items-center gap-1 rounded-full bg-black/35 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white backdrop-blur-sm">
+          <span className="material-symbols-outlined text-[14px]">location_on</span>
+          <span className="truncate">{destinationLabel}</span>
+        </div>
+      )}
+
+      {hasCarousel && (
+        <>
           <button
             type="button"
-            aria-label={wishlistAction.active ? 'Remove from wishlist' : 'Add to wishlist'}
-            className={cn(
-              'absolute top-3 right-3 z-10 grid place-items-center w-10 h-10 rounded-full',
-              'bg-black/35 hover:bg-black/50 text-white backdrop-blur-sm transition-colors'
-            )}
+            aria-label="Previous image"
+            className="absolute left-2 top-1/2 z-10 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-black/35 text-white backdrop-blur-sm transition-colors hover:bg-black/55"
             onClick={(e) => {
               e.preventDefault()
               e.stopPropagation()
-              wishlistAction.onToggle()
+              goPrev()
             }}
           >
-            <span className="material-symbols-outlined text-[22px]">
-              {wishlistAction.active ? 'favorite' : 'favorite_border'}
-            </span>
+            <span className="material-symbols-outlined text-[18px]">chevron_left</span>
           </button>
-        )}
+          <button
+            type="button"
+            aria-label="Next image"
+            className="absolute right-2 top-1/2 z-10 grid h-8 w-8 -translate-y-1/2 place-items-center rounded-full bg-black/35 text-white backdrop-blur-sm transition-colors hover:bg-black/55"
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              goNext()
+            }}
+          >
+            <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+          </button>
+        </>
+      )}
 
-        {/* Carousel controls */}
-        {hasCarousel && (
-          <>
-            <button
-              type="button"
-              aria-label="Previous image"
-              className="absolute left-2 top-1/2 -translate-y-1/2 z-10 grid place-items-center w-9 h-9 rounded-full bg-black/35 hover:bg-black/50 text-white backdrop-blur-sm transition-colors"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                goPrev()
-              }}
-            >
-              <span className="material-symbols-outlined text-[20px]">chevron_left</span>
-            </button>
-            <button
-              type="button"
-              aria-label="Next image"
-              className="absolute right-2 top-1/2 -translate-y-1/2 z-10 grid place-items-center w-9 h-9 rounded-full bg-black/35 hover:bg-black/50 text-white backdrop-blur-sm transition-colors"
-              onClick={(e) => {
-                e.preventDefault()
-                e.stopPropagation()
-                goNext()
-              }}
-            >
-              <span className="material-symbols-outlined text-[20px]">chevron_right</span>
-            </button>
-          </>
-        )}
-
-        {/* Sliding track */}
+      {allImages.length === 0 ? (
+        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/20 via-primary/10 to-slate-200 dark:from-primary/30 dark:to-slate-800">
+          <span className="material-symbols-outlined text-5xl text-primary/50">landscape</span>
+        </div>
+      ) : (
         <div
           className={cn(
             'absolute inset-0 flex',
@@ -187,7 +175,6 @@ export function TripCard({
             if (!hasCarousel) return
 
             const len = allImages.length
-            // Jump (without animation) when landing on clones
             if (trackIndex === 0) {
               setIsAnimating(false)
               setTrackIndex(len)
@@ -215,62 +202,110 @@ export function TripCard({
             />
           ))}
         </div>
-        <div className="absolute inset-0 bg-gradient-to-t from-white/60 dark:from-card-dark/60 to-transparent"></div>
+      )}
 
-        {/* Dots */}
-        {hasCarousel && (
-          <div className="absolute bottom-2 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5">
-            {allImages.slice(0, 6).map((_, idx) => (
-              <button
-                key={idx}
-                type="button"
-                aria-label={`Go to image ${idx + 1}`}
-                className={cn(
-                  'h-1.5 rounded-full transition-all',
-                  idx === activeIndex ? 'w-6 bg-white' : 'w-1.5 bg-white/60 hover:bg-white/80'
-                )}
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  setIsAnimating(true)
-                  setTrackIndex(idx + 1)
-                }}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-      <div className="flex flex-col gap-3 p-4">
-        <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1">
-            {agency?.name || 'Unknown Agency'}
-          </p>
-          <h3 className="text-lg font-bold leading-tight text-slate-900 dark:text-white">{title}</h3>
+      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+
+      <div className="absolute bottom-3 left-3 right-3 z-10 flex items-end justify-between gap-2">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold text-white drop-shadow-sm">{title}</p>
+          <p className="truncate text-[11px] text-white/80">{agency.name}</p>
         </div>
-        <div className="flex items-center gap-4 text-sm text-slate-500 dark:text-slate-400">
-          <div className="flex items-center gap-1.5">
+        <p className="shrink-0 text-2xl font-extrabold leading-none text-white drop-shadow-md">
+          {duration}
+          <span className="ml-0.5 text-xs font-semibold">d</span>
+        </p>
+      </div>
+
+      {hasCarousel && (
+        <div className="absolute bottom-14 left-1/2 z-10 flex -translate-x-1/2 items-center gap-1.5">
+          {allImages.slice(0, 6).map((_, idx) => (
+            <button
+              key={idx}
+              type="button"
+              aria-label={`Go to image ${idx + 1}`}
+              className={cn(
+                'h-1.5 rounded-full transition-all',
+                idx === activeIndex ? 'w-5 bg-white' : 'w-1.5 bg-white/55 hover:bg-white/80'
+              )}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                setIsAnimating(true)
+                setTrackIndex(idx + 1)
+              }}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  )
+
+  const detailsBlock = (
+    <div className="mt-4 flex flex-1 flex-col gap-3">
+      <div>
+        <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-primary">
+          {agency.name}
+          {agency.verified && (
+            <span className="material-symbols-outlined ml-1 align-middle text-[14px]">verified</span>
+          )}
+        </p>
+        <h3 className="text-lg font-bold leading-snug text-slate-900 dark:text-white">{title}</h3>
+      </div>
+
+      <ul className="divide-y divide-slate-100 dark:divide-slate-800/90">
+        <li className="flex items-center justify-between gap-3 py-2.5 text-sm">
+          <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
             <span className="material-symbols-outlined text-[18px] text-primary">calendar_month</span>
-            <span>
-              {startDate}-{endDate}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5">
+            Dates
+          </span>
+          <span className="text-right font-medium text-slate-800 dark:text-slate-200">
+            {startDate} – {endDate}
+          </span>
+        </li>
+        <li className="flex items-center justify-between gap-3 py-2.5 text-sm">
+          <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
             <span className="material-symbols-outlined text-[18px] text-primary">schedule</span>
-            <span>{duration} Days</span>
-          </div>
+            Duration
+          </span>
+          <span className="font-medium text-slate-800 dark:text-slate-200">{duration} days</span>
+        </li>
+        {destination && (
+          <li className="flex items-center justify-between gap-3 py-2.5 text-sm">
+            <span className="flex items-center gap-1.5 text-slate-500 dark:text-slate-400">
+              <span className="material-symbols-outlined text-[18px] text-primary">explore</span>
+              Destination
+            </span>
+            <span className="max-w-[55%] truncate text-right font-medium text-slate-800 dark:text-slate-200">
+              {destination}
+            </span>
+          </li>
+        )}
+      </ul>
+
+      <div className="mt-auto flex items-center justify-between gap-3 pt-1">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-500">
+            From
+          </p>
+          <p className="text-xl font-extrabold text-slate-900 dark:text-white">{formatPrice(price)}</p>
         </div>
-        <div className="mt-2 flex items-center justify-between pt-4 border-t border-slate-200 dark:border-border-dark">
-          <div>
-            <p className="text-[10px] uppercase font-bold tracking-wider text-slate-500 dark:text-slate-500">
-              Starting from
-            </p>
-            <p className="text-xl font-extrabold text-slate-900 dark:text-white">${price.toLocaleString()}</p>
-          </div>
-          <Button variant="primary" size="sm" className="px-5 py-2.5">
-            View Details
-          </Button>
-        </div>
+        <Button
+          variant="primary"
+          size="sm"
+          className="rounded-full px-5 py-2.5 shadow-[0_0_20px_rgba(19,127,236,0.35)] group-hover:shadow-[0_0_28px_rgba(19,127,236,0.5)]"
+        >
+          <span className="material-symbols-outlined text-[18px]">arrow_forward</span>
+          View trip
+        </Button>
       </div>
+    </div>
+  )
+
+  const content = (
+    <>
+      {imageBlock}
+      {detailsBlock}
     </>
   )
 
@@ -286,10 +321,7 @@ export function TripCard({
             onSelectTrip(tripSlug)
           }
         }}
-        className={cn(
-          'group flex flex-col overflow-hidden rounded-2xl bg-white dark:bg-card-dark shadow-xl border border-slate-200 dark:border-border-dark hover:border-primary/50 transition-all cursor-pointer',
-          className
-        )}
+        className={cn(cardShellClass, 'cursor-pointer', className)}
       >
         {content}
       </div>
@@ -297,14 +329,10 @@ export function TripCard({
   }
 
   return (
-    <Link
-      href={`/trips/${tripSlug}`}
-      className={cn(
-        'group flex flex-col overflow-hidden rounded-2xl bg-white dark:bg-card-dark shadow-xl border border-slate-200 dark:border-border-dark hover:border-primary/50 transition-all',
-        className
-      )}
-    >
+    <Link href={`/trips/${tripSlug}`} className={cn(cardShellClass, className)}>
       {content}
     </Link>
   )
 }
+
+export const TripCard = memo(TripCardInner)

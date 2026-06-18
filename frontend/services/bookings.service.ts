@@ -46,86 +46,53 @@ async function bookingVisibleToViewer(
 
 export const bookingsService = {
   createBooking: async (data: BookingRequestDTO): Promise<ApiResponse<BookingDTO>> => {
-    const sb = createBrowserSupabaseClient()
-    const {
-      data: { session },
-    } = await sb.auth.getSession()
-    if (!session) throw new Error('Authentication required.')
-
-    const payload = {
-      id: crypto.randomUUID(),
-      trip_id: data.tripId,
-      traveler_id: session.user.id,
-      start_date: data.startDate,
-      end_date: data.endDate,
-      number_of_travelers: data.numberOfTravelers,
-      status: 'pending',
-      special_requests: data.specialRequests ?? null,
+    const res = await fetch('/api/bookings/create-with-wallet', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(typeof body.error === 'string' ? body.error : 'Failed to create booking.')
     }
+    return ok(body.data.booking as BookingDTO)
+  },
 
-    const { error } = await sb.from('bookings').insert(payload)
-    if (error) throw new Error(formatSupabaseError(error))
-
-    const { data: row, error: fetchErr } = await sb.from('bookings').select(BOOKING_SELECT).eq('id', payload.id).single()
-
-    if (fetchErr || !row) throw new Error(fetchErr ? formatSupabaseError(fetchErr) : 'Booking created but failed to load.')
-    return ok(mapBookingRow(row as Record<string, unknown>))
+  createBookingWithWallet: async (
+    data: BookingRequestDTO
+  ): Promise<ApiResponse<{ booking: BookingDTO; newBalance: number; totalAmount: number }>> => {
+    const res = await fetch('/api/bookings/create-with-wallet', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(typeof body.error === 'string' ? body.error : 'Failed to create booking.')
+    }
+    return ok(body.data)
   },
 
   getBookings: async (
     params?: PaginationParams & { traveler_id?: string }
   ): Promise<ApiResponse<BookingListResponseDTO>> => {
-    const sb = createBrowserSupabaseClient()
-    const {
-      data: { session },
-    } = await sb.auth.getSession()
-    if (!session) throw new Error('Authentication required.')
+    const qs = new URLSearchParams()
+    if (params?.page) qs.set('page', String(params.page))
+    if (params?.limit) qs.set('limit', String(params.limit))
+    if (params?.traveler_id) qs.set('traveler_id', params.traveler_id)
 
-    const { data: me } = await sb.from('users').select('role').eq('id', session.user.id).maybeSingle()
-    if (!me) throw new Error('Profile not found.')
-    const role = String((me as { role: string }).role)
-
-    const page = Math.max(1, params?.page ?? 1)
-    const limit = Math.min(100, Math.max(1, params?.limit ?? 20))
-    const start = (page - 1) * limit
-    const end = start + limit - 1
-
-    let q = sb.from('bookings').select(BOOKING_SELECT, { count: 'exact' }).order('created_at', { ascending: false })
-
-    const travelerFilter = params?.traveler_id
-
-    if (role === 'Traveler') {
-      const only = travelerFilter ?? session.user.id
-      if (travelerFilter && travelerFilter !== session.user.id) {
-        throw new Error('Forbidden.')
-      }
-      q = q.eq('traveler_id', only)
-    } else if (role === 'Agency') {
-      const ids = await agencyTripIds(sb, session.user.id)
-      if (ids.length === 0) {
-        return ok({ bookings: [], total: 0, page, limit })
-      }
-      q = q.in('trip_id', ids)
-      if (travelerFilter) q = q.eq('traveler_id', travelerFilter)
-    } else if (role === 'Admin') {
-      if (travelerFilter) q = q.eq('traveler_id', travelerFilter)
-    } else {
-      throw new Error('Forbidden.')
-    }
-
-    q = q.range(start, end)
-
-    const { data, error, count } = await q
-    if (error) throw new Error(formatSupabaseError(error))
-    const rows = (data ?? []) as Record<string, unknown>[]
-    const total = count ?? rows.length
-
-    return ok({
-      bookings: rows.map((r) => mapBookingRow(r)),
-      total,
-      page,
-      limit,
+    const query = qs.toString()
+    const res = await fetch(`/api/bookings${query ? `?${query}` : ''}`, {
+      method: 'GET',
+      credentials: 'include',
     })
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(typeof body.error === 'string' ? body.error : 'Failed to load bookings.')
+    }
+    return ok(body.data as BookingListResponseDTO)
   },
 
   getBooking: async (id: string): Promise<ApiResponse<BookingDTO>> => {
@@ -164,16 +131,27 @@ export const bookingsService = {
     if (!me) throw new Error('Profile not found.')
     const role = String((me as { role: string }).role)
 
+    if (role === 'Agency' || role === 'Admin') {
+      const res = await fetch(`/api/bookings/${id}/status`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status }),
+      })
+      const body = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(typeof body.error === 'string' ? body.error : 'Failed to update booking.')
+      }
+      return ok(body.data as BookingDTO)
+    }
+
     const { data: raw, error: rawErr } = await sb.from('bookings').select('*').eq('id', id).maybeSingle()
     if (rawErr) throw new Error(formatSupabaseError(rawErr))
     if (!raw) throw new Error('Booking not found.')
 
     const rowMeta = raw as { traveler_id?: string; trip_id?: string }
-    let allowed = role === 'Admin'
-    if (role === 'Agency' && rowMeta.trip_id) {
-      allowed = await bookingVisibleToViewer(sb, rowMeta, session.user.id, role)
-    }
-    if (!allowed) throw new Error('Forbidden.')
+    const okView = await bookingVisibleToViewer(sb, rowMeta, session.user.id, role)
+    if (!okView) throw new Error('Forbidden.')
 
     const { data, error } = await sb
       .from('bookings')

@@ -1,8 +1,8 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo, useRef, memo } from 'react'
+import dynamic from 'next/dynamic'
 import { TripCard } from '@/shared/components/ui'
-import { TripDetailModal } from '@/shared/components/trips/TripDetailModal'
 import { TripFilters, type TripFiltersState } from '@/features/trips/components/TripFilters'
 import { Header, BottomNavigation } from '@/shared/components/layout'
 import { IconButton, ThemeToggle } from '@/shared/components/ui'
@@ -14,38 +14,25 @@ import { tripsService } from '@/services/trips.service'
 import { getErrorMessage } from '@/shared/utils/error-message'
 import type { TripDTO } from '@/types/api/trips.types'
 
+const TripDetailModal = dynamic(
+  () => import('@/shared/components/trips/TripDetailModal').then((m) => m.TripDetailModal),
+  { ssr: false }
+)
+
 /** Server-side pagination: only this many trips per request; backend returns one page at a time. */
 const PAGE_SIZE = 12
 const SEARCH_DEBOUNCE_MS = 400
 
 const VALID_ROLES = ['Traveler', 'Agency', 'Admin'] as const
 
-/** Memoized card row so wishlist callback is stable per trip and list re-renders are minimal. */
+/** Memoized card row for stable list re-renders. */
 const TripCardItem = memo(function TripCardItem({
   trip,
-  wishlistActive,
-  onWishlistToggle,
   onSelectTrip,
-  showWishlist,
 }: {
   trip: TripDTO
-  wishlistActive: boolean
-  onWishlistToggle: (slug: string) => void
   onSelectTrip: (slug: string) => void
-  showWishlist: boolean
 }) {
-  const handleWishlistToggle = useCallback(() => {
-    onWishlistToggle(trip.slug)
-  }, [trip.slug, onWishlistToggle])
-
-  const wishlistAction = useMemo(
-    () =>
-      showWishlist
-        ? { active: wishlistActive, onToggle: handleWishlistToggle }
-        : undefined,
-    [showWishlist, wishlistActive, handleWishlistToggle]
-  )
-
   const agency = useMemo(
     () => ({ name: trip.agency.name, verified: trip.agency.verified }),
     [trip.agency.name, trip.agency.verified]
@@ -64,6 +51,7 @@ const TripCardItem = memo(function TripCardItem({
       id={trip.slug}
       slug={trip.slug}
       title={trip.title}
+      destination={trip.destination}
       agency={agency}
       startDate={trip.startDate}
       endDate={trip.endDate}
@@ -72,7 +60,6 @@ const TripCardItem = memo(function TripCardItem({
       image={trip.images?.[0] ?? ''}
       images={trip.images}
       badge={badge}
-      wishlistAction={wishlistAction}
       onSelectTrip={onSelectTrip}
     />
   )
@@ -88,37 +75,6 @@ export default function TripListingsClient() {
         ? user.role
         : null,
     [user?.role]
-  )
-
-  const storageKey = useMemo(() => (user ? `wishlist:${user.id}` : null), [user?.id])
-  const [wishlist, setWishlist] = useState<string[]>([])
-
-  const wishlistSet = useMemo(() => new Set(wishlist), [wishlist])
-
-  useEffect(() => {
-    if (typeof window === 'undefined' || !storageKey) return
-    const raw = window.localStorage.getItem(storageKey)
-    if (raw) {
-      try {
-        setWishlist(JSON.parse(raw))
-      } catch {
-        setWishlist([])
-      }
-    } else {
-      setWishlist([])
-    }
-  }, [storageKey])
-
-  const toggleWishlist = useCallback(
-    (slug: string) => {
-      if (typeof window === 'undefined' || !storageKey) return
-      setWishlist((prev) => {
-        const next = prev.includes(slug) ? prev.filter((x) => x !== slug) : [...prev, slug]
-        window.localStorage.setItem(storageKey, JSON.stringify(next))
-        return next
-      })
-    },
-    [storageKey]
   )
 
   const [trips, setTrips] = useState<TripDTO[]>([])
@@ -269,7 +225,7 @@ export default function TripListingsClient() {
         {/* Header */}
         <Header
           title="Tripster"
-          titleHref="/"
+          titleOnClick={() => fetchTrips()}
           variant="light"
           showThemeToggle={false}
           rightAction={
@@ -332,17 +288,18 @@ export default function TripListingsClient() {
 
         {/* Search */}
         <div className="px-4 py-4 md:px-8">
-          <label className="flex flex-col w-full max-w-2xl mx-auto">
-            <div className="flex w-full items-center rounded-xl bg-white dark:bg-card-dark border border-slate-200 dark:border-border-dark shadow-sm transition-all focus-within:ring-2 focus-within:ring-primary/50 focus-within:border-primary">
-              <div className="flex items-center justify-center pl-4 text-slate-400 dark:text-slate-400">
-                <span className="material-symbols-outlined">search</span>
+          <label className="mx-auto flex w-full max-w-2xl flex-col">
+            <div className="group flex w-full items-center overflow-hidden rounded-[14px] border border-slate-200/80 bg-white shadow-sm transition-all duration-200 dark:border-slate-600/60 dark:bg-card-dark focus-within:border-primary focus-within:shadow-[0_0_0_4px_rgba(19,127,236,0.14)] dark:focus-within:shadow-[0_0_0_4px_rgba(19,127,236,0.22)]">
+              <div className="flex shrink-0 items-center justify-center pl-4 text-slate-400 transition-colors duration-200 group-focus-within:text-primary dark:text-slate-400">
+                <span className="material-symbols-outlined text-[22px]">search</span>
               </div>
               <input
-                className="h-12 w-full bg-transparent border-none focus:ring-0 text-base text-slate-900 dark:text-white placeholder:text-slate-500 px-3"
+                className="h-12 w-full min-w-0 border-0 bg-transparent px-3 text-base text-slate-900 outline-none ring-0 placeholder:text-slate-400 focus:border-0 focus:outline-none focus:ring-0 dark:text-white dark:placeholder:text-slate-500"
                 placeholder="Where do you want to go?"
-                type="text"
+                type="search"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                aria-label="Search destinations"
               />
             </div>
           </label>
@@ -358,7 +315,7 @@ export default function TripListingsClient() {
           {tripsLoading && <p className="text-slate-500 dark:text-slate-400 col-span-full">Loading trips…</p>}
           {tripsError && <p className="text-red-500 dark:text-red-400 col-span-full">{tripsError}</p>}
           {!tripsLoading && !tripsError && trips.length === 0 && (
-            <div className="col-span-full rounded-2xl border border-slate-200 dark:border-border-dark bg-white dark:bg-card-dark px-6 py-8 text-center space-y-2">
+            <div className="col-span-full rounded-none border border-slate-200 dark:border-border-dark bg-white dark:bg-card-dark px-6 py-8 text-center space-y-2">
               <p className="text-lg font-semibold text-slate-900 dark:text-white">No trips match</p>
               <p className="text-sm text-slate-600 dark:text-slate-400 max-w-md mx-auto space-y-2">
                 <span className="block">
@@ -382,15 +339,7 @@ export default function TripListingsClient() {
               <TripCardItem
                 key={trip.id}
                 trip={trip}
-                wishlistActive={wishlistSet.has(trip.slug)}
-                onWishlistToggle={toggleWishlist}
                 onSelectTrip={setTripDetailSlug}
-                showWishlist={
-                  !isLoading &&
-                  !!isAuthenticated &&
-                  userRole === USER_ROLES.TRAVELER &&
-                  !!user
-                }
               />
             ))}
         </div>
@@ -405,7 +354,7 @@ export default function TripListingsClient() {
               type="button"
               onClick={handlePrevPage}
               disabled={currentPage <= 1}
-              className="inline-flex items-center gap-1 rounded-xl border border-slate-200 dark:border-border-dark bg-white dark:bg-card-dark px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              className="inline-flex items-center gap-1 rounded-none border border-slate-200 dark:border-border-dark bg-white dark:bg-card-dark px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
             >
               <span className="material-symbols-outlined text-[18px]">chevron_left</span>
               Previous
@@ -422,7 +371,7 @@ export default function TripListingsClient() {
               type="button"
               onClick={handleNextPage}
               disabled={currentPage >= totalPages}
-              className="inline-flex items-center gap-1 rounded-xl border border-slate-200 dark:border-border-dark bg-white dark:bg-card-dark px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+              className="inline-flex items-center gap-1 rounded-none border border-slate-200 dark:border-border-dark bg-white dark:bg-card-dark px-4 py-2 text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
             >
               Next
               <span className="material-symbols-outlined text-[18px]">chevron_right</span>

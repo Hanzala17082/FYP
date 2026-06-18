@@ -34,3 +34,12 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Cursor / planning artifacts
+.cursor/
+*.plan.md
+
+# Markdown drafts (keep README files)
+*.md
+!README.md
+!**/README.md

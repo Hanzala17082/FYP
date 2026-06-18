@@ -1,8 +1,10 @@
 'use client'
 
+import { memo } from 'react'
 import Link from 'next/link'
 import { useAuth } from '@/shared/contexts/AuthContext'
 import { cn } from '@/shared/utils/cn'
+import { logger } from '@/shared/utils/logger'
 
 interface NavButtonProps {
   href: string
@@ -20,7 +22,9 @@ interface NavButtonProps {
  * Position: Always on the LEFT side of header (for navigation)
  * Use for: Dashboard, Browse Trips, etc.
  */
-export function NavButton({
+export const NavButton = memo(NavButtonInner)
+
+function NavButtonInner({
   href,
   label,
   icon = 'arrow_forward',
@@ -34,11 +38,11 @@ export function NavButton({
 
   // Validate role if required
   if (validateRole && expectedRole && user?.role !== expectedRole) {
-    console.warn(`NavButton: Role mismatch. Expected ${expectedRole}, got ${user?.role}`)
+    logger.warn(`NavButton: Role mismatch. Expected ${expectedRole}, got ${user?.role}`)
     return null
   }
   const baseStyles =
-    'flex items-center gap-2 h-10 px-3 text-sm font-semibold rounded-xl transition-colors duration-200 border'
+    'flex items-center gap-2 h-10 px-3 text-sm font-semibold rounded-none transition-colors duration-200 border'
 
   const variants = {
     default: cn(

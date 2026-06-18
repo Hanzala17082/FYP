@@ -24,12 +24,12 @@ export default function NotFound() {
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center pt-6">
           <Link href="/">
-            <button className="px-6 py-3 bg-[#3B82F6] hover:bg-[#2563EB] text-white font-semibold rounded-xl transition-colors duration-200 shadow-lg shadow-blue-500/20 w-full sm:w-auto">
+            <button className="px-6 py-3 bg-[#3B82F6] hover:bg-[#2563EB] text-white font-semibold rounded-none transition-colors duration-200 shadow-lg shadow-blue-500/20 w-full sm:w-auto">
               Go Home
             </button>
           </Link>
           <Link href="/trips">
-            <button className="px-6 py-3 bg-[#1F2937] hover:bg-[#374151] text-white font-semibold rounded-xl border border-gray-600 transition-colors duration-200 w-full sm:w-auto">
+            <button className="px-6 py-3 bg-[#1F2937] hover:bg-[#374151] text-white font-semibold rounded-none border border-gray-600 transition-colors duration-200 w-full sm:w-auto">
               Browse Trips
             </button>
           </Link>

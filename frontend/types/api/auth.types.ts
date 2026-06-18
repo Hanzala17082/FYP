@@ -15,7 +15,6 @@ export interface RegisterRequestDTO {
   password: string
   confirmPassword: string
   role: 'Traveler' | 'Agency'
-  agreeToTerms: boolean
 }
 
 export interface AuthResponseDTO {
@@ -40,6 +39,13 @@ export interface ForgotPasswordRequestDTO {
 
 export interface ResetPasswordRequestDTO {
   token: string
+  password: string
+  confirmPassword: string
+}
+
+export interface ChangePasswordRequestDTO {
+  email: string
+  currentPassword: string
   password: string
   confirmPassword: string
 }

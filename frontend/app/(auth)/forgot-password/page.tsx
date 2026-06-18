@@ -1,4 +1,5 @@
 import { Metadata } from 'next'
+import { Suspense } from 'react'
 import ForgotPasswordClient from './ForgotPasswordClient'
 import { generateMetadata } from '@/shared/utils/seo'
 
@@ -8,5 +9,9 @@ export const metadata: Metadata = generateMetadata({
 })
 
 export default function ForgotPasswordPage() {
-  return <ForgotPasswordClient />
+  return (
+    <Suspense fallback={null}>
+      <ForgotPasswordClient />
+    </Suspense>
+  )
 }

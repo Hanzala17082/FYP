@@ -1,6 +1,11 @@
 import { Metadata } from 'next'
+import dynamic from 'next/dynamic'
 import { generateMetadata } from '@/shared/utils/seo'
-import TripListingsClient from './TripListingsClient'
+import { PageLoader } from '@/shared/components/ui/PageLoader'
+
+const TripListingsClient = dynamic(() => import('./TripListingsClient'), {
+  loading: () => <PageLoader label="Loading trips…" />,
+})
 
 export const metadata: Metadata = generateMetadata({
   title: 'Discover Amazing Trips - Tripster',

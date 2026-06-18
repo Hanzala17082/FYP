@@ -1,2 +1,13 @@
 # Local helper scripts (do not commit)
 git-setup-and-commit.ps1
+
+# Cursor / planning artifacts
+.cursor/
+*.plan.md
+
+# Markdown drafts (keep README files)
+*.md
+!README.md
+!**/README.md
+!DEMO_USERS.md
+!AI_AND_MODERATION_GUIDE.md

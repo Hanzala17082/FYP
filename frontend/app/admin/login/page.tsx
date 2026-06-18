@@ -47,7 +47,7 @@ export default function AdminLoginPage() {
 
   if (!mounted) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-950">
+      <div className="min-h-screen flex items-center justify-center bg-background-light dark:bg-slate-950">
         <div className="animate-pulse text-slate-500 dark:text-slate-400">Loading...</div>
       </div>
     )
@@ -99,7 +99,7 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div className="relative min-h-screen flex flex-col w-full overflow-x-hidden bg-slate-50 dark:bg-background-dark">
+    <div className="relative min-h-screen flex flex-col w-full overflow-x-hidden bg-background-light dark:bg-background-dark">
       {/* Background Image */}
       <div className="relative h-[42vh] w-full shrink-0">
         <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/20 to-transparent z-10"></div>
@@ -117,8 +117,8 @@ export default function AdminLoginPage() {
       </div>
 
       {/* Form Container */}
-      <div className="flex-1 relative -mt-12 z-30 bg-white dark:bg-card-dark rounded-t-[32px] md:rounded-3xl shadow-[0_-10px_40px_rgba(0,0,0,0.06)] px-6 pt-8 pb-8 md:pt-12 md:pb-12 flex flex-col items-center w-full max-w-lg mx-auto md:max-w-2xl">
-        <div className="w-12 h-1.5 bg-slate-200 dark:bg-white/10 rounded-full mb-6 opacity-60"></div>
+      <div className="flex-1 relative -mt-12 z-30 bg-white dark:bg-card-dark shadow-[0_-10px_40px_rgba(0,0,0,0.06)] px-6 pt-8 pb-8 md:pt-12 md:pb-12 flex flex-col items-center w-full max-w-lg mx-auto md:max-w-2xl">
+        <div className="w-12 h-1.5 bg-slate-200 dark:bg-white/10 rounded-none mb-6 opacity-60"></div>
         <div className="flex items-center gap-2 mb-2">
           <span className="material-symbols-outlined text-primary text-2xl">admin_panel_settings</span>
           <h1 className="text-slate-900 dark:text-white tracking-tight text-3xl font-bold leading-tight text-center font-display">
@@ -136,7 +136,7 @@ export default function AdminLoginPage() {
             </span>
             <div className="relative">
               <input
-                className="form-input flex w-full rounded-2xl text-slate-900 dark:text-white border border-slate-200 dark:border-white/20 bg-white dark:bg-white/5 focus:border-primary focus:ring-4 focus:ring-primary/10 h-14 px-4 pl-12 text-base placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all duration-200"
+                className="form-input flex w-full rounded-none text-slate-900 dark:text-white border border-slate-200 dark:border-white/20 bg-white dark:bg-white/5 focus:border-primary focus:ring-4 focus:ring-primary/10 h-14 px-4 pl-12 text-base placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all duration-200"
                 placeholder="admin@tripster.com"
                 type="email"
                 value={email}
@@ -161,9 +161,9 @@ export default function AdminLoginPage() {
                 Forgot Password?
               </Link>
             </div>
-            <div className="relative flex w-full items-stretch rounded-2xl">
+            <div className="relative flex w-full items-stretch rounded-none">
               <input
-                className="form-input flex w-full rounded-2xl text-slate-900 dark:text-white border border-slate-200 dark:border-white/20 bg-white dark:bg-white/5 focus:border-primary focus:ring-4 focus:ring-primary/10 h-14 px-4 pl-12 text-base placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all duration-200 z-0"
+                className="form-input flex w-full rounded-none text-slate-900 dark:text-white border border-slate-200 dark:border-white/20 bg-white dark:bg-white/5 focus:border-primary focus:ring-4 focus:ring-primary/10 h-14 px-4 pl-12 text-base placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-all duration-200 z-0"
                 placeholder="Enter your password"
                 type={showPassword ? 'text' : 'password'}
                 value={password}
@@ -186,7 +186,7 @@ export default function AdminLoginPage() {
           </label>
 
           {error && (
-            <div className="w-full p-3 rounded-xl bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
+            <div className="w-full p-3 rounded-none bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">
               <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
             </div>
           )}
@@ -194,7 +194,7 @@ export default function AdminLoginPage() {
           <Button
             type="submit"
             disabled={isLoading}
-            className="mt-4 w-full h-14 bg-primary hover:bg-blue-600 active:scale-[0.98] text-white text-lg font-bold rounded-2xl shadow-glow transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="mt-4 w-full h-14 bg-primary hover:bg-blue-600 active:scale-[0.98] text-white text-lg font-bold rounded-none shadow-glow transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isLoading ? 'Logging in...' : 'Access Admin Panel'}
           </Button>

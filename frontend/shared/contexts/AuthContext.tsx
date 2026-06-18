@@ -4,11 +4,12 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { User, UserRole } from '@/types/entities/user.entity'
 import { USER_ROLES, ROUTES } from '@/config/constants'
 import { setAuthCookies, clearAuthCookies } from '@/shared/utils/auth'
-import type { Session } from '@supabase/supabase-js'
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js'
 import { createBrowserSupabaseClient } from '@/shared/lib/supabase/client'
 import { isSupabaseConfigured, SUPABASE_ENV_HINT } from '@/shared/lib/supabase/env'
 import { fetchUserDTO, userDtoToEntity } from '@/shared/lib/supabase/profile'
 import { authService } from '@/services/auth.service'
+import { logger } from '@/shared/utils/logger'
 
 interface AuthContextType {
   user: User | null
@@ -26,6 +27,19 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 const VALID_ROLES: UserRole[] = ['Admin', 'Agency', 'Traveler']
 
+function isPasswordRecoveryRoute(): boolean {
+  if (typeof window === 'undefined') return false
+  return window.location.pathname.startsWith(ROUTES.RESET_PASSWORD)
+}
+
+function persistSessionTokens(session: Session) {
+  if (typeof window === 'undefined') return
+  localStorage.setItem('accessToken', session.access_token)
+  if (session.refresh_token) {
+    localStorage.setItem('refreshToken', session.refresh_token)
+  }
+}
+
 function isValidRole(role: unknown): role is UserRole {
   return typeof role === 'string' && VALID_ROLES.includes(role as UserRole)
 }
@@ -36,14 +50,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!isSupabaseConfigured()) {
-      console.warn(`[REHNUM] Supabase env incomplete — not hydrating auth. ${SUPABASE_ENV_HINT}`)
+      logger.warn(`[REHNUM] Supabase env incomplete — not hydrating auth. ${SUPABASE_ENV_HINT}`)
       setIsLoading(false)
       return
     }
 
     const sb = createBrowserSupabaseClient()
 
-    async function applySession(session: Session | null) {
+    async function applySession(session: Session | null, event?: AuthChangeEvent) {
       if (!session?.user) {
         setUserState(null)
         if (typeof window !== 'undefined') {
@@ -55,10 +69,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return
       }
 
+      const isRecovery = event === 'PASSWORD_RECOVERY' || isPasswordRecoveryRoute()
+
       try {
         const dto = await fetchUserDTO(session.user.id)
         if (!isValidRole(dto.role)) {
-          console.error('Invalid user role detected:', dto.role)
+          if (isRecovery) {
+            persistSessionTokens(session)
+            setUserState(null)
+            return
+          }
+          logger.error('Invalid user role detected:', dto.role)
           await sb.auth.signOut()
           setUserState(null)
           if (typeof window !== 'undefined') {
@@ -81,7 +102,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           setAuthCookies(appUser, session.access_token)
         }
       } catch (e) {
-        console.error('Auth hydration failed:', e)
+        if (isRecovery) {
+          persistSessionTokens(session)
+          setUserState(null)
+          return
+        }
+        logger.error('Auth hydration failed:', e)
         await sb.auth.signOut()
         setUserState(null)
         if (typeof window !== 'undefined') {
@@ -107,9 +133,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     const {
       data: { subscription },
-    } = sb.auth.onAuthStateChange((_event, session) => {
+    } = sb.auth.onAuthStateChange((event, session) => {
       void (async () => {
-        await applySession(session)
+        await applySession(session, event)
         setIsLoading(false)
       })()
     })
@@ -133,7 +159,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       await authService.logout()
     } catch (e) {
-      console.error('Supabase signOut:', e)
+      logger.error('Supabase signOut:', e)
     }
     setUserState(null)
     if (typeof window !== 'undefined') {
@@ -175,6 +201,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       ROUTES.LOGIN,
       ROUTES.REGISTER,
       ROUTES.FORGOT_PASSWORD,
+      ROUTES.RESET_PASSWORD,
       ROUTES.TRIPS,
       ROUTES.AGENCIES,
     ]

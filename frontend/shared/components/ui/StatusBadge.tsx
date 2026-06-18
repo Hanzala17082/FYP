@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { cn } from '@/shared/utils/cn'
 
 export type StatusType =
@@ -80,17 +81,15 @@ const sizeClasses = {
   lg: 'px-3 py-1.5 text-sm',
 }
 
-export function StatusBadge({ status, className, size = 'md' }: StatusBadgeProps) {
+function StatusBadgeInner({ status, className, size = 'md' }: StatusBadgeProps) {
   const config = statusConfig[status]
   const isOverlay = status === 'trending' || status === 'approved' || status === 'rejected'
 
-  // Safety check: if config is undefined, use default pending style
   if (!config) {
-    console.warn(`StatusBadge: Unknown status "${status}", using default style`)
     return (
       <div
         className={cn(
-          'flex items-center justify-center rounded-lg font-bold uppercase tracking-wider',
+          'flex items-center justify-center rounded-none font-bold uppercase tracking-wider',
           'bg-slate-100 dark:bg-slate-700/30',
           'text-slate-600 dark:text-slate-400',
           sizeClasses[size],
@@ -105,7 +104,7 @@ export function StatusBadge({ status, className, size = 'md' }: StatusBadgeProps
   return (
     <div
       className={cn(
-        'flex items-center justify-center rounded-lg font-bold uppercase tracking-wider',
+        'flex items-center justify-center rounded-none font-bold uppercase tracking-wider',
         config.bg,
         config.text,
         config.border && `border ${config.border}`,
@@ -118,3 +117,5 @@ export function StatusBadge({ status, className, size = 'md' }: StatusBadgeProps
     </div>
   )
 }
+
+export const StatusBadge = memo(StatusBadgeInner)

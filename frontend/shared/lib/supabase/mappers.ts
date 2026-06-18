@@ -145,6 +145,8 @@ export function mapBookingRow(row: Record<string, unknown>): BookingDTO {
     numberOfTravelers: Number(row.number_of_travelers ?? 0),
     status: row.status as BookingDTO['status'],
     specialRequests: row.special_requests ? String(row.special_requests) : undefined,
+    totalAmount: row.total_amount != null ? Number(row.total_amount) : undefined,
+    paymentStatus: row.payment_status ? (row.payment_status as BookingDTO['paymentStatus']) : undefined,
     createdAt: row.created_at ? String(row.created_at) : '',
     updatedAt: row.updated_at ? String(row.updated_at) : '',
   }
