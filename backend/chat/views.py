@@ -6,8 +6,9 @@ from rest_framework.views import APIView
 from django.utils.dateparse import parse_datetime
 
 from bookings.models import Booking
-from chat.models import ChatGroup, ChatGroupMember, ChatMessage
-from chat.serializers import group_to_dto, message_to_dto, section_for_trip
+from chat.membership import sync_booking_membership
+from chat.models import ChatGroup, ChatGroupMember, ChatMessage, ModerationFlag
+from chat.serializers import group_to_dto, message_to_dto, moderation_flag_to_dto, section_for_trip
 from common.responses import api_error, api_response
 from common.supabase_jwt import user_from_authorization_header
 
@@ -124,4 +125,38 @@ class ChatSyncBookingView(APIView):
 
         sync_booking_membership(booking)
         return api_response({'ok': True})
+
+
+class ModerationFlagListView(APIView):
+    """List AI moderation flags.
+
+    - Platform Admin: all flags.
+    - Agency: only flags in chat groups tied to that agency's trips.
+    - Travelers / others: forbidden.
+    """
+
+    def get(self, request: Request):
+        user = _current_user(request)
+        if not user:
+            return api_error('Authentication required.', status=401)
+
+        qs = (
+            ModerationFlag.objects.select_related('group', 'sender', 'agency')
+            .order_by('-created_at')
+        )
+
+        if user.role == 'Admin':
+            pass
+        elif user.role == 'Agency' and hasattr(user, 'agency') and user.agency:
+            qs = qs.filter(agency_id=user.agency.id)
+        else:
+            return api_error('Forbidden.', status=403)
+
+        status_filter = request.query_params.get('status')
+        if status_filter in (ModerationFlag.Status.PENDING, ModerationFlag.Status.REVIEWED):
+            qs = qs.filter(status=status_filter)
+
+        limit = min(100, max(1, int(request.query_params.get('limit', 50))))
+        flags = [moderation_flag_to_dto(f) for f in qs[:limit]]
+        return api_response({'flags': flags})
 

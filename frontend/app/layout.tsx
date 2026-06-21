@@ -32,7 +32,7 @@ export default function RootLayout({
           rel="stylesheet"
         />
       </head>
-      <body className={`${plusJakarta.variable} font-display antialiased bg-background-light dark:bg-background-dark`}>
+      <body suppressHydrationWarning className={`${plusJakarta.variable} font-display antialiased bg-background-light dark:bg-background-dark`}>
         <ThemeProvider>
           <AuthProvider>
             <CurrencyProvider>

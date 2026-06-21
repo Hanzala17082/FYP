@@ -7,7 +7,8 @@ from typing import Optional
 from channels.generic.websocket import AsyncWebsocketConsumer
 from django.utils import timezone
 
-from chat.models import ChatGroupMember, ChatMessage
+from chat.models import ChatGroup, ChatGroupMember, ChatMessage, ModerationFlag
+from chat.moderation import classify, violation_reason
 from chat.serializers import message_to_dto
 from common.supabase_jwt import user_from_supabase_token
 from users.models import User
@@ -64,6 +65,22 @@ class ChatConsumer(AsyncWebsocketConsumer):
         if not body or len(body) > 2000:
             return
 
+        # AI moderation: block + flag unsafe content before it is stored/broadcast.
+        from asgiref.sync import sync_to_async
+
+        verdict = await sync_to_async(classify)(body)
+        if not verdict.get('safe', True):
+            await self._create_flag(body, verdict)
+            reason = violation_reason(verdict.get('categories', {}))
+            await self.send(
+                text_data=json.dumps({
+                    'type': 'blocked',
+                    'reason': reason,
+                    'categories': verdict.get('categories', {}),
+                })
+            )
+            return
+
         msg = await self._save_message(body)
         if not msg:
             return
@@ -100,6 +117,30 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 sender=self.user,
                 body=body,
                 created_at=timezone.now(),
+            )
+
+        try:
+            return await sync_to_async(create)()
+        except Exception:
+            return None
+
+    async def _create_flag(self, body: str, verdict: dict) -> Optional[ModerationFlag]:
+        from asgiref.sync import sync_to_async
+
+        def create():
+            agency_id = (
+                ChatGroup.objects.filter(id=self.group_id)
+                .values_list('trip__agency_id', flat=True)
+                .first()
+            )
+            return ModerationFlag.objects.create(
+                id=uuid.uuid4(),
+                group_id=self.group_id,
+                sender=self.user,
+                agency_id=agency_id,
+                message_excerpt=body[:500],
+                categories=verdict.get('categories', {}),
+                provider=verdict.get('provider', ''),
             )
 
         try:

@@ -13,13 +13,17 @@
     "type-check": "tsc --noEmit"
   },
   "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.1073.0",
+    "@aws-sdk/lib-dynamodb": "^3.1073.0",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.105.4",
     "axios": "^1.7.0",
     "clsx": "^2.1.1",
     "next": "^14.2.0",
+    "openai": "^6.44.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
+    "server-only": "^0.0.1",
     "tailwind-merge": "^2.3.0",
     "zod": "^3.23.0",
     "zustand": "^4.5.0"

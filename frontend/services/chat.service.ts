@@ -45,6 +45,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
 
 export type ChatSocketHandlers = {
   onMessage: (message: ChatMessageDTO) => void
+  onBlocked?: (info: { reason: string; categories: Record<string, number> }) => void
   onOpen?: () => void
   onClose?: () => void
   onError?: () => void
@@ -99,9 +100,19 @@ export const chatService = {
     ws.onerror = () => handlers.onError?.()
     ws.onmessage = (event) => {
       try {
-        const payload = JSON.parse(String(event.data)) as { type?: string; message?: ChatMessageDTO }
+        const payload = JSON.parse(String(event.data)) as {
+          type?: string
+          message?: ChatMessageDTO
+          reason?: string
+          categories?: Record<string, number>
+        }
         if (payload.type === 'message' && payload.message) {
           handlers.onMessage(payload.message)
+        } else if (payload.type === 'blocked') {
+          handlers.onBlocked?.({
+            reason: payload.reason ?? 'community guidelines violation',
+            categories: payload.categories ?? {},
+          })
         }
       } catch {
         // ignore malformed frames

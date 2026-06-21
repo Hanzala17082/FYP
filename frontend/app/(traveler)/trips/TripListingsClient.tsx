@@ -19,6 +19,11 @@ const TripDetailModal = dynamic(
   { ssr: false }
 )
 
+const TripAssistant = dynamic(
+  () => import('@/shared/components/assistant/TripAssistant').then((m) => m.TripAssistant),
+  { ssr: false }
+)
+
 /** Server-side pagination: only this many trips per request; backend returns one page at a time. */
 const PAGE_SIZE = 12
 const SEARCH_DEBOUNCE_MS = 400
@@ -385,6 +390,9 @@ export default function TripListingsClient() {
           onClose={handleCloseDetailModal}
         />
       </div>
+
+      {/* RAG trip assistant chatbot (floating, bottom-right) */}
+      <TripAssistant />
 
       {/* Bottom Navigation */}
       <BottomNavigation items={bottomNavItems} variant="default" />

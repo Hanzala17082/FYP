@@ -10,3 +10,4 @@ djangorestframework-simplejwt>=5.3
 channels>=4.0,<5
 channels-redis>=4.2
 daphne>=4.0
+openai>=1.40

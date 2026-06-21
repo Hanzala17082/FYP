@@ -145,6 +145,12 @@ export default function AdminDashboardClient() {
               variant="default"
             />
             <NavButton
+              href="/admin/moderation"
+              label="Moderation"
+              icon="gavel"
+              variant="default"
+            />
+            <NavButton
               href="/profile"
               label="Profile"
               icon="person"

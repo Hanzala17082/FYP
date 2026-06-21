@@ -22,6 +22,7 @@ function ChatThreadInner({ group, onBack, onPolicyUpdated }: ChatThreadProps) {
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
   const [error, setError] = useState('')
+  const [blockedNotice, setBlockedNotice] = useState('')
   const [editingPolicy, setEditingPolicy] = useState(false)
   const [policyText, setPolicyText] = useState(group.policyText)
   const [subtitle, setSubtitle] = useState(group.subtitle)
@@ -60,6 +61,11 @@ function ChatThreadInner({ group, onBack, onPolicyUpdated }: ChatThreadProps) {
             return [...prev, msg]
           })
         },
+        onBlocked: ({ reason }) => {
+          setBlockedNotice(
+            `Your message was blocked for ${reason}. Please keep the chat respectful.`
+          )
+        },
       })
       .then((ws) => {
         if (cancelled) {
@@ -86,6 +92,7 @@ function ChatThreadInner({ group, onBack, onPolicyUpdated }: ChatThreadProps) {
   const handleSend = () => {
     const body = draft.trim()
     if (!body || !wsRef.current) return
+    setBlockedNotice('')
     setSending(true)
     chatService.sendMessage(wsRef.current, body)
     setDraft('')
@@ -179,6 +186,13 @@ function ChatThreadInner({ group, onBack, onPolicyUpdated }: ChatThreadProps) {
         })}
         <div ref={bottomRef} />
       </div>
+
+      {blockedNotice && (
+        <div className="mx-3 mb-2 px-3 py-2 bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/30 text-sm text-red-700 dark:text-red-300 flex items-start gap-2">
+          <span className="material-symbols-outlined text-[18px] mt-0.5">block</span>
+          <span>{blockedNotice}</span>
+        </div>
+      )}
 
       <div className="border-t border-slate-200 dark:border-slate-800 p-3 flex gap-2">
         <input

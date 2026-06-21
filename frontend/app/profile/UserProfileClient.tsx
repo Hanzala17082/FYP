@@ -21,6 +21,8 @@ import { agenciesService } from '@/services/agencies.service'
 import { tripsService } from '@/services/trips.service'
 import { walletService } from '@/services/wallet.service'
 import { profileService } from '@/services/profile.service'
+import { agencyProfileService } from '@/services/agency-profile.service'
+import { phoneInTextValidationMessage } from '@/shared/utils/phone-in-text'
 import { estimateTripPricePkr, clampTripPricePkr, TRIP_PRICE_MIN_PKR, TRIP_PRICE_MAX_PKR } from '@/shared/utils/currency'
 import { AvatarPicker } from '@/shared/components/profile/AvatarPicker'
 import { userDtoToEntity } from '@/shared/lib/supabase/profile'
@@ -35,7 +37,12 @@ const TripChatsPanel = dynamic(
   { loading: () => <RoundedBox padding="lg"><p className="text-sm text-slate-500">Loading trip chats…</p></RoundedBox> }
 )
 
-type ProfileTab = 'overview' | 'trips' | 'myTrips' | 'chats' | 'personal' | 'wallet' | 'complaints' | 'settings'
+const ModerationFlagList = dynamic(
+  () => import('@/shared/components/moderation/ModerationFlagList').then((m) => m.ModerationFlagList),
+  { loading: () => <RoundedBox padding="lg"><p className="text-sm text-slate-500">Loading moderation…</p></RoundedBox> }
+)
+
+type ProfileTab = 'overview' | 'trips' | 'myTrips' | 'chats' | 'personal' | 'agencyProfile' | 'moderation' | 'wallet' | 'complaints' | 'settings'
 type TravelerKpiKind = 'completed' | 'enrolled' | 'pending' | 'rejected'
 
 export default function UserProfileClient() {
@@ -80,6 +87,13 @@ export default function UserProfileClient() {
   const [avatarUploading, setAvatarUploading] = useState(false)
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileSaveError, setProfileSaveError] = useState('')
+  const [agencyId, setAgencyId] = useState<string | null>(null)
+  const [agencyBio, setAgencyBio] = useState('')
+  const [agencyLocation, setAgencyLocation] = useState('')
+  const [agencyBioLoading, setAgencyBioLoading] = useState(false)
+  const [agencyBioSaving, setAgencyBioSaving] = useState(false)
+  const [agencyBioError, setAgencyBioError] = useState('')
+  const [agencyBioSaved, setAgencyBioSaved] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -109,9 +123,10 @@ export default function UserProfileClient() {
         .then(([dash, bookings]) => {
           if (cancelled) return
           setAgencyBookings(bookings)
-          const agencyId = dash.agency?.id
-          if (agencyId) {
-            return agenciesService.getAgencyTrips(agencyId).then((res) => (res.data?.trips ?? [])).then(setAgencyTrips)
+          const dashAgencyId = dash.agency?.id
+          if (dashAgencyId) {
+            setAgencyId(dashAgencyId)
+            return agenciesService.getAgencyTrips(dashAgencyId).then((res) => (res.data?.trips ?? [])).then(setAgencyTrips)
           }
         })
         .catch(() => { if (!cancelled) { setAgencyTrips([]); setAgencyBookings([]) } })
@@ -143,7 +158,7 @@ export default function UserProfileClient() {
   useEffect(() => {
     const tab = searchParams?.get('tab')
     if (!tab) return
-    const allowed: ProfileTab[] = ['overview', 'trips', 'myTrips', 'chats', 'personal', 'wallet', 'complaints', 'settings']
+    const allowed: ProfileTab[] = ['overview', 'trips', 'myTrips', 'chats', 'personal', 'agencyProfile', 'moderation', 'wallet', 'complaints', 'settings']
     if (allowed.includes(tab as ProfileTab)) {
       setActiveTab(tab as ProfileTab)
     }
@@ -185,6 +200,30 @@ export default function UserProfileClient() {
       setUsesEmailAuth(providers.length === 0 || providers.includes('email'))
     })
   }, [activeTab, user])
+
+  // Load the agency's current bio/description when opening the Agency Profile tab.
+  useEffect(() => {
+    if (activeTab !== 'agencyProfile' || !agencyId) return
+    let cancelled = false
+    setAgencyBioLoading(true)
+    setAgencyBioError('')
+    agenciesService
+      .getAgency(agencyId)
+      .then((res) => {
+        if (cancelled || !res.data) return
+        setAgencyBio(res.data.description ?? '')
+        setAgencyLocation(res.data.location ?? '')
+      })
+      .catch((err: unknown) => {
+        if (!cancelled) setAgencyBioError(getErrorMessage(err, 'Failed to load agency profile.'))
+      })
+      .finally(() => {
+        if (!cancelled) setAgencyBioLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [activeTab, agencyId])
 
   const handleAcceptRequest = async (bookingId: string) => {
     setBookingActionId(bookingId)
@@ -293,6 +332,33 @@ export default function UserProfileClient() {
     }
   }
 
+  const handleSaveAgencyBio = async () => {
+    setAgencyBioSaving(true)
+    setAgencyBioError('')
+    setAgencyBioSaved(false)
+    // Block phone numbers client-side for instant feedback (server re-validates).
+    const phoneError = phoneInTextValidationMessage(agencyBio)
+    if (phoneError) {
+      setAgencyBioError(phoneError)
+      setAgencyBioSaving(false)
+      return
+    }
+    try {
+      const updated = await agencyProfileService.updateProfile({
+        description: agencyBio.trim(),
+        location: agencyLocation.trim(),
+      })
+      setAgencyBio(updated.description ?? '')
+      setAgencyLocation(updated.location ?? '')
+      setAgencyBioSaved(true)
+      setTimeout(() => setAgencyBioSaved(false), 3000)
+    } catch (err: unknown) {
+      setAgencyBioError(getErrorMessage(err, 'Failed to save agency profile.'))
+    } finally {
+      setAgencyBioSaving(false)
+    }
+  }
+
   const handleAvatarUpload = async (file: File) => {
     setAvatarUploading(true)
     setProfileSaveError('')
@@ -350,7 +416,9 @@ export default function UserProfileClient() {
           ...(user.role === USER_ROLES.AGENCY
             ? [
                 { id: 'trips', label: 'Trips & Requests', icon: 'flight' as const },
+                { id: 'agencyProfile', label: 'Agency Profile', icon: 'storefront' as const },
                 { id: 'chats', label: 'Trip Chats', icon: 'forum' as const },
+                { id: 'moderation', label: 'Moderation', icon: 'gavel' as const },
               ]
             : []),
           { id: 'personal', label: 'Personal Info', icon: 'badge' },
@@ -860,9 +928,9 @@ export default function UserProfileClient() {
                               ? 'pending'
                               : booking.status === 'confirmed'
                                 ? 'confirmed'
-                                : booking.status === 'cancelled'
-                                  ? 'rejected'
-                                  : booking.status
+                                : booking.status === 'completed'
+                                  ? 'confirmed'
+                                  : 'rejected'
                           }
                           timeAgo={formatTimeAgo(booking.createdAt)}
                           showActions={booking.status === 'pending'}
@@ -1395,10 +1463,79 @@ export default function UserProfileClient() {
     </div>
   )
 
+  const renderAgencyProfile = () => (
+    <div className="space-y-6 min-w-0">
+      <SectionHeader title="Agency Profile" subtitle="Your public bio shown on your agency page" />
+
+      <AlertBox
+        variant="info"
+        title="No phone numbers in your bio"
+        message="To keep bookings on-platform, your bio must not contain phone numbers — written as digits or as words (e.g. 'zero three one one'). Saving will be blocked if one is detected."
+      />
+
+      {agencyBioSaved && (
+        <AlertBox variant="success" title="Saved" message="Your agency bio has been updated." />
+      )}
+      {agencyBioError && (
+        <AlertBox variant="error" title="Could not save" message={agencyBioError} />
+      )}
+
+      <RoundedBox padding="lg" className="space-y-4 min-w-0 w-full">
+        {agencyBioLoading ? (
+          <p className="text-sm text-slate-500 dark:text-slate-400">Loading agency profile…</p>
+        ) : (
+          <>
+            <Input
+              label="Location"
+              value={agencyLocation}
+              onChange={(e) => setAgencyLocation(e.target.value)}
+              placeholder="e.g., Lahore, Pakistan"
+              className="min-w-0 bg-white dark:bg-slate-900 text-slate-900 dark:text-white border-slate-200 dark:border-slate-700"
+            />
+            <div className="space-y-1">
+              <label className="block text-sm font-semibold text-slate-900 dark:text-white">
+                Bio / Description
+              </label>
+              <textarea
+                className="w-full border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 px-3 py-2 text-sm text-slate-900 dark:text-white min-h-[160px]"
+                value={agencyBio}
+                onChange={(e) => setAgencyBio(e.target.value)}
+                placeholder="Tell travelers about your agency, the experiences you offer, and what makes you stand out…"
+              />
+            </div>
+            <Button
+              variant="primary"
+              className="mt-2 w-full sm:w-auto"
+              onClick={() => void handleSaveAgencyBio()}
+              disabled={agencyBioSaving}
+            >
+              <span className="material-symbols-outlined text-[18px]">save</span>
+              {agencyBioSaving ? 'Saving…' : 'Save Bio'}
+            </Button>
+          </>
+        )}
+      </RoundedBox>
+    </div>
+  )
+
+  const renderModeration = () => (
+    <div className="space-y-4">
+      <SectionHeader
+        title="Chat Moderation"
+        subtitle="Messages blocked in your trip chats for adult, hate, or harassment content"
+      />
+      <ModerationFlagList showAgency={false} />
+    </div>
+  )
+
   const renderActiveTab = () => {
     switch (activeTab) {
       case 'personal':
         return renderPersonalInfo()
+      case 'agencyProfile':
+        return renderAgencyProfile()
+      case 'moderation':
+        return renderModeration()
       case 'trips':
         return renderAgencyTrips()
       case 'myTrips':
@@ -1492,6 +1629,8 @@ export default function UserProfileClient() {
                 ? [{ id: 'chats', label: 'Trip Chats' }]
                 : []),
               ...(user.role === USER_ROLES.AGENCY ? [{ id: 'trips', label: 'Trips' }] : []),
+              ...(user.role === USER_ROLES.AGENCY ? [{ id: 'agencyProfile', label: 'Agency Profile' }] : []),
+              ...(user.role === USER_ROLES.AGENCY ? [{ id: 'moderation', label: 'Moderation' }] : []),
               { id: 'personal', label: 'Personal' },
               { id: 'wallet', label: 'Wallet' },
               { id: 'complaints', label: 'Complaints' },

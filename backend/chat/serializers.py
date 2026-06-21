@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 
-from chat.models import ChatGroup, ChatGroupMember, ChatMessage
+from chat.models import ChatGroup, ChatGroupMember, ChatMessage, ModerationFlag
 from users.models import User
 
 
@@ -46,3 +46,19 @@ def section_for_trip(end_date: date) -> str:
     if end_date >= today:
         return 'upcoming'
     return 'past'
+
+
+def moderation_flag_to_dto(flag: ModerationFlag) -> dict:
+    return {
+        'id': str(flag.id),
+        'groupId': str(flag.group_id),
+        'groupTitle': flag.group.title if flag.group_id else '',
+        'agencyId': str(flag.agency_id) if flag.agency_id else None,
+        'agencyName': flag.agency.agency_name if flag.agency_id else '',
+        'sender': _user_dto(flag.sender),
+        'messageExcerpt': flag.message_excerpt,
+        'categories': flag.categories or {},
+        'provider': flag.provider,
+        'status': flag.status,
+        'createdAt': flag.created_at.isoformat(),
+    }

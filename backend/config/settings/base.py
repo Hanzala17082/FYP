@@ -31,6 +31,8 @@ env = environ.Env(
     SUPABASE_POOLER_PORT=(str, '5432'),
     SUPABASE_JWT_SECRET=(str, ''),
     REDIS_URL=(str, ''),
+    GEMINI_API_KEY=(str, ''),
+    GEMINI_MODERATION_MODEL=(str, 'gemini-2.5-flash'),
 )
 
 SECRET_KEY = env('SECRET_KEY')
@@ -64,6 +66,11 @@ _EFFECTIVE_DATABASE_URL = _effective_database_url()
 
 SUPABASE_JWT_SECRET = env('SUPABASE_JWT_SECRET', default='').strip()
 REDIS_URL = env('REDIS_URL', default='').strip()
+
+# AI chat moderation (Google Gemini via OpenAI-compatible API; keyword fallback
+# if key missing).
+GEMINI_API_KEY = env('GEMINI_API_KEY', default='').strip()
+GEMINI_MODERATION_MODEL = env('GEMINI_MODERATION_MODEL', default='gemini-2.0-flash').strip()
 
 INSTALLED_APPS = [
     'daphne',
