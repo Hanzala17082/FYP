@@ -15,6 +15,8 @@ export const ROUTES = {
     AGENCY: '/dashboard',
     ADMIN: '/admin/dashboard',
   },
+  ADMIN_USERS: '/admin/users',
+  ADMIN_TRIPS: '/admin/trips',
 } as const
 
 export const USER_ROLES = {

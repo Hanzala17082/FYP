@@ -15,6 +15,7 @@ export interface RegisterRequestDTO {
   password: string
   confirmPassword: string
   role: 'Traveler' | 'Agency'
+  wantVerifiedAgency?: boolean
 }
 
 export interface AuthResponseDTO {

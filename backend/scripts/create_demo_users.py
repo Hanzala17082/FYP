@@ -1,3 +1,8 @@
+# DEPRECATED: this script only creates Django `public.users` rows and does NOT
+# create Supabase Auth users, so the accounts cannot log in through the web app.
+# Use `npm run seed:demo` (frontend/scripts/reset-and-seed-demo.mjs) instead,
+# which creates real Supabase Auth users. See REHNUM/DEMO_USERS.md.
+
 import os
 import sys
 

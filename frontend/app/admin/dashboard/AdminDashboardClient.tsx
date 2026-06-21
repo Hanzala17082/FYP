@@ -1,98 +1,72 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import Link from 'next/link'
 import { Header } from '@/shared/components/layout'
-import { Avatar, StatCard, ThemeToggle } from '@/shared/components/ui'
-import { SectionHeader } from '@/shared/components/ui'
+import { StatCard, SectionHeader } from '@/shared/components/ui'
 import { RoundedBox } from '@/shared/components/ui/RoundedBox'
 import { Button } from '@/shared/components/ui/Button'
-import { LogoutButton } from '@/shared/components/auth/LogoutButton'
-import { NavButton } from '@/shared/components/navigation'
-import { dashboardService } from '@/services/dashboard.service'
+import { AdminHeaderActions } from '@/shared/components/admin/AdminHeaderActions'
+import { dashboardService, type AdminDashboardStats } from '@/services/dashboard.service'
+import { adminService } from '@/services/admin.service'
 import { useCurrency } from '@/shared/contexts/CurrencyContext'
 import { ROUTES } from '@/config/constants'
-import Link from 'next/link'
+import { StatSkeleton, ListRowSkeleton } from './components/AdminSkeletons'
+import { RecentUserRow, RecentTripRow } from './components/RecentRows'
+import {
+  DetailModal,
+  AgencyModalList,
+  PendingVerificationList,
+  mapAgencySummary,
+} from './components/AdminDashboardModals'
 
-// Detail Modal Component
-function DetailModal({
-  isOpen,
-  onClose,
-  title,
-  children,
-}: {
-  isOpen: boolean
-  onClose: () => void
-  title: string
-  children: React.ReactNode
-}) {
-  if (!isOpen) return null
-
-  return (
-    <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-      onClick={onClose}
-    >
-      <div
-        className="bg-white dark:bg-slate-800 rounded-none shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-y-auto"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="sticky top-0 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between rounded-none">
-          <h2 className="text-2xl font-bold text-slate-900 dark:text-white">{title}</h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-none transition-colors"
-          >
-            <span className="material-symbols-outlined text-slate-600 dark:text-slate-400">close</span>
-          </button>
-        </div>
-        <div className="p-6">{children}</div>
-      </div>
-    </div>
-  )
+const INITIAL_STATS: AdminDashboardStats = {
+  totalUsers: 0,
+  activeUsers: 0,
+  newUsersThisMonth: 0,
+  totalTrips: 0,
+  activeTrips: 0,
+  upcomingTrips: 0,
+  totalAgencies: 0,
+  verifiedAgencies: 0,
+  basicAgencies: 0,
+  pendingVerifications: 0,
+  totalBookings: 0,
+  revenue: 0,
+  verificationFees: 0,
+  tripListingFees: 0,
+  newUsersToday: 0,
+  tripsCreatedToday: 0,
+  bookingsToday: 0,
+  revenueToday: 0,
 }
+
+type ModalKey = 'users' | 'trips' | 'agencies' | 'verified' | 'basic' | 'pending' | null
 
 export default function AdminDashboardClient() {
   const { formatPrice } = useCurrency()
-  const [selectedModal, setSelectedModal] = useState<'users' | 'trips' | 'agencies' | 'verified' | 'basic' | null>(null)
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    activeUsers: 0,
-    newUsersThisMonth: 0,
-    totalTrips: 0,
-    activeTrips: 0,
-    upcomingTrips: 0,
-    totalAgencies: 0,
-    verifiedAgencies: 0,
-    basicAgencies: 0,
-    pendingVerifications: 0,
-    totalBookings: 0,
-    revenue: 0,
-  })
-  const [recentUsers, setRecentUsers] = useState<Array<{ id: string; name: string; email: string; role: string; joined: string; status: string }>>([])
-  const [recentTrips, setRecentTrips] = useState<Array<{ id: string; title: string; agency: string; status: string; bookings: number; price: string }>>([])
-  const [agencies, setAgencies] = useState<Array<{ id: string; name: string; email: string; status: string; trips: number; joined: string; rating: number; reviewCount: number; avatar?: string }>>([])
+  const [selectedModal, setSelectedModal] = useState<ModalKey>(null)
+  const [stats, setStats] = useState<AdminDashboardStats>(INITIAL_STATS)
+  const [recentUsers, setRecentUsers] = useState<
+    Array<{ id: string; name: string; email: string; role: string; joined: string; status: string }>
+  >([])
+  const [recentTripsRaw, setRecentTripsRaw] = useState<
+    Array<{ id: string; title: string; agency: string; status: string; bookings: number; price: number }>
+  >([])
+  const [agencies, setAgencies] = useState<ReturnType<typeof mapAgencySummary>[]>([])
+  const [agenciesLoading, setAgenciesLoading] = useState(false)
+  const [reviewBusyId, setReviewBusyId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    let cancelled = false
     dashboardService
       .getAdminDashboard()
       .then((dash) => {
-        setStats({
-          totalUsers: dash.stats?.totalUsers ?? 0,
-          activeUsers: dash.stats?.totalUsers ?? 0,
-          newUsersThisMonth: 0,
-          totalTrips: dash.stats?.totalTrips ?? 0,
-          activeTrips: dash.stats?.totalTrips ?? 0,
-          upcomingTrips: 0,
-          totalAgencies: dash.stats?.totalAgencies ?? 0,
-          verifiedAgencies: (dash.recentAgencies ?? []).filter((a) => a.verified).length,
-          basicAgencies: (dash.recentAgencies ?? []).filter((a) => !a.verified).length,
-          pendingVerifications: 0,
-          totalBookings: dash.stats?.totalBookings ?? 0,
-          revenue: 0,
-        })
+        if (cancelled) return
+        setStats(dash.stats)
         setRecentUsers(
-          (dash.recentUsers ?? []).map((u) => ({
+          dash.recentUsers.slice(0, 3).map((u) => ({
             id: u.id,
             name: u.fullName,
             email: u.email,
@@ -101,33 +75,77 @@ export default function AdminDashboardClient() {
             status: 'Active',
           }))
         )
-        setRecentTrips(
-          (dash.recentTrips ?? []).map((t) => ({
+        setRecentTripsRaw(
+          dash.recentTrips.slice(0, 3).map((t) => ({
             id: t.id,
             title: t.title,
             agency: t.agency?.name ?? '',
             status: t.status ?? 'active',
-            bookings: t.reviewCount ?? 0,
-            price: formatPrice(Number(t.price ?? 0)),
-          }))
-        )
-        setAgencies(
-          (dash.recentAgencies ?? []).map((a) => ({
-            id: a.id,
-            name: a.name,
-            email: '',
-            status: a.verified ? 'Verified' : 'Basic',
-            trips: a.reviewCount ?? 0,
-            joined: '',
-            rating: a.rating ?? 0,
-            reviewCount: a.reviewCount ?? 0,
-            avatar: a.avatar,
+            bookings: t.bookingCount ?? 0,
+            price: Number(t.price ?? 0),
           }))
         )
       })
       .catch(() => {})
-      .finally(() => setLoading(false))
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
+
+  const needsAgencies =
+    selectedModal === 'agencies' ||
+    selectedModal === 'verified' ||
+    selectedModal === 'basic' ||
+    selectedModal === 'pending'
+
+  const loadAgencies = useCallback(() => {
+    setAgenciesLoading(true)
+    return adminService
+      .getAgencies()
+      .then((res) => setAgencies(res.agencies.map(mapAgencySummary)))
+      .catch(() => setAgencies([]))
+      .finally(() => setAgenciesLoading(false))
+  }, [])
+
+  useEffect(() => {
+    if (!needsAgencies || agencies.length > 0) return
+    void loadAgencies()
+  }, [needsAgencies, agencies.length, loadAgencies])
+
+  const refreshStats = useCallback(() => {
+    return dashboardService
+      .getAdminDashboard()
+      .then((dash) => setStats(dash.stats))
+      .catch(() => {})
+  }, [])
+
+  const handleReview = useCallback(
+    async (agencyId: string, action: 'approve' | 'reject') => {
+      setReviewBusyId(agencyId)
+      try {
+        await adminService.reviewAgencyVerification(agencyId, action)
+        await Promise.all([loadAgencies(), refreshStats()])
+      } catch {
+        // Error surfaced by disabled state resetting; keep UI simple for FYP demo.
+      } finally {
+        setReviewBusyId(null)
+      }
+    },
+    [loadAgencies, refreshStats]
+  )
+
+  const recentTrips = useMemo(
+    () => recentTripsRaw.map((t) => ({ ...t, priceLabel: formatPrice(t.price) })),
+    [recentTripsRaw, formatPrice]
+  )
+
+  const closeModal = useCallback(() => setSelectedModal(null), [])
+
+  const statGrid = 'grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4'
+  const dailyGrid = 'grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4'
 
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen">
@@ -136,79 +154,63 @@ export default function AdminDashboardClient() {
         subtitle="Admin Dashboard"
         variant="light"
         showThemeToggle={false}
-        rightAction={
-          <div className="flex items-center gap-2">
-            <NavButton
-              href={ROUTES.DASHBOARD.ADMIN}
-              label="Dashboard"
-              icon="dashboard"
-              variant="default"
-            />
-            <NavButton
-              href="/admin/moderation"
-              label="Moderation"
-              icon="gavel"
-              variant="default"
-            />
-            <NavButton
-              href="/profile"
-              label="Profile"
-              icon="person"
-              variant="default"
-            />
-            <ThemeToggle />
-            <LogoutButton />
-          </div>
-        }
+        rightAction={<AdminHeaderActions />}
       />
 
-      <main className="flex flex-col w-full max-w-7xl mx-auto p-5 md:p-8 space-y-6">
-        {/* Main Statistics Grid */}
+      <main className="flex flex-col w-full max-w-7xl mx-auto p-4 sm:p-5 md:p-8 space-y-5 sm:space-y-6">
         <section>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard
-              title="Total Users"
-              value={stats.totalUsers.toLocaleString()}
-              subtitle={`${stats.activeUsers.toLocaleString()} active`}
-              icon={<span className="material-symbols-outlined">people</span>}
-              trend={{ value: `+${stats.newUsersThisMonth}`, isPositive: true }}
-              clickable
-              onClick={() => setSelectedModal('users')}
-            />
-            <StatCard
-              title="Active Trips"
-              value={stats.activeTrips}
-              subtitle={`${stats.upcomingTrips} upcoming`}
-              icon={<span className="material-symbols-outlined">flight_takeoff</span>}
-              trend={{ value: '+12%', isPositive: true }}
-              clickable
-              onClick={() => setSelectedModal('trips')}
-            />
-            <StatCard
-              title="Total Agencies"
-              value={stats.totalAgencies}
-              subtitle={`${stats.verifiedAgencies} verified, ${stats.basicAgencies} basic`}
-              icon={<span className="material-symbols-outlined">business</span>}
-              trend={{ value: '+5%', isPositive: true }}
-              clickable
-              onClick={() => setSelectedModal('agencies')}
-            />
-            <StatCard
-              title="Total Bookings"
-              value={stats.totalBookings.toLocaleString()}
-              subtitle={`${formatPrice(stats.revenue)} revenue`}
-              icon={<span className="material-symbols-outlined">bookmark</span>}
-              trend={{ value: '+18%', isPositive: true }}
-            />
-          </div>
+          {loading ? (
+            <div className={statGrid}>
+              {Array.from({ length: 4 }).map((_, i) => (
+                <StatSkeleton key={i} />
+              ))}
+            </div>
+          ) : (
+            <div className={statGrid}>
+              <StatCard
+                title="Total Users"
+                value={stats.totalUsers.toLocaleString()}
+                subtitle={`${stats.activeUsers.toLocaleString()} active`}
+                icon={<span className="material-symbols-outlined">people</span>}
+                trend={
+                  stats.newUsersThisMonth > 0
+                    ? { value: `+${stats.newUsersThisMonth} this month`, isPositive: true }
+                    : undefined
+                }
+                clickable
+                onClick={() => setSelectedModal('users')}
+              />
+              <StatCard
+                title="Active Trips"
+                value={stats.activeTrips}
+                subtitle={`${stats.upcomingTrips} upcoming`}
+                icon={<span className="material-symbols-outlined">flight_takeoff</span>}
+                clickable
+                onClick={() => setSelectedModal('trips')}
+              />
+              <StatCard
+                title="Total Agencies"
+                value={stats.totalAgencies}
+                subtitle={`${stats.verifiedAgencies} verified, ${stats.basicAgencies} basic`}
+                icon={<span className="material-symbols-outlined">business</span>}
+                clickable
+                onClick={() => setSelectedModal('agencies')}
+              />
+              <StatCard
+                title="Total Bookings"
+                value={stats.totalBookings.toLocaleString()}
+                subtitle={`${formatPrice(stats.revenue)} platform revenue`}
+                icon={<span className="material-symbols-outlined">bookmark</span>}
+              />
+            </div>
+          )}
         </section>
 
-        {/* Agency Breakdown */}
         <section>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
             <StatCard
               title="Verified Agencies"
-              value={stats.verifiedAgencies}
+              value={loading ? '…' : stats.verifiedAgencies}
               subtitle="Fully verified and active"
               icon={<span className="material-symbols-outlined text-emerald-500">verified</span>}
               variant="highlight"
@@ -218,7 +220,7 @@ export default function AdminDashboardClient() {
             />
             <StatCard
               title="Basic Agencies"
-              value={stats.basicAgencies}
+              value={loading ? '…' : stats.basicAgencies}
               subtitle="Pending verification"
               icon={<span className="material-symbols-outlined text-amber-500">pending</span>}
               clickable
@@ -227,376 +229,249 @@ export default function AdminDashboardClient() {
             />
             <StatCard
               title="Pending Verifications"
-              value={stats.pendingVerifications}
+              value={loading ? '…' : stats.pendingVerifications}
               subtitle="Requires approval"
               icon={<span className="material-symbols-outlined text-blue-500">schedule</span>}
-              trend={{ value: '-2', isPositive: false }}
+              clickable
+              onClick={() => setSelectedModal('pending')}
               className="bg-gradient-to-br from-blue-50 to-blue-100/50 dark:from-blue-500/10 dark:to-blue-500/5 border-blue-200 dark:border-blue-500/20"
             />
           </div>
         </section>
 
-        {/* Quick Stats Row */}
         <section>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <RoundedBox padding="md" className="text-center">
-              <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">New Users Today</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">23</p>
-            </RoundedBox>
-            <RoundedBox padding="md" className="text-center">
-              <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Trips Created Today</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">8</p>
-            </RoundedBox>
-            <RoundedBox padding="md" className="text-center">
-              <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Bookings Today</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">45</p>
-            </RoundedBox>
-            <RoundedBox padding="md" className="text-center">
-              <p className="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Revenue Today</p>
-              <p className="text-2xl font-bold text-slate-900 dark:text-white">{formatPrice(1_240_000)}</p>
-            </RoundedBox>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+            <StatCard
+              title="Platform Revenue"
+              value={loading ? '…' : formatPrice(stats.revenue)}
+              subtitle="Total fees collected"
+              icon={<span className="material-symbols-outlined text-emerald-500">account_balance</span>}
+              variant="highlight"
+            />
+            <StatCard
+              title="Verification Fees"
+              value={loading ? '…' : formatPrice(stats.verificationFees)}
+              subtitle="From verified agencies"
+              icon={<span className="material-symbols-outlined">workspace_premium</span>}
+            />
+            <StatCard
+              title="Trip Listing Fees"
+              value={loading ? '…' : formatPrice(stats.tripListingFees)}
+              subtitle="From posted trips"
+              icon={<span className="material-symbols-outlined">receipt_long</span>}
+            />
           </div>
         </section>
 
-        {/* Recent Activity */}
-        <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <section>
+          <div className={dailyGrid}>
+            {[
+              { label: 'New Users Today', value: loading ? '…' : stats.newUsersToday },
+              { label: 'Trips Created Today', value: loading ? '…' : stats.tripsCreatedToday },
+              { label: 'Bookings Today', value: loading ? '…' : stats.bookingsToday },
+              {
+                label: 'Revenue Today',
+                value: loading ? '…' : formatPrice(stats.revenueToday),
+              },
+            ].map((item) => (
+              <RoundedBox key={item.label} padding="md" className="text-center min-w-0">
+                <p className="text-slate-500 dark:text-slate-400 text-xs sm:text-sm font-medium mb-1 truncate">
+                  {item.label}
+                </p>
+                <p className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tabular-nums truncate">
+                  {item.value}
+                </p>
+              </RoundedBox>
+            ))}
+          </div>
+        </section>
+
+        <section className="grid grid-cols-1 lg:grid-cols-2 gap-4 sm:gap-6">
           <RoundedBox padding="lg">
-            <SectionHeader title="Recent Users" action={{ label: 'View All', href: '/admin/users' }} className="mb-4" />
+            <SectionHeader
+              title="Recent Users"
+              action={{ label: 'View All', href: ROUTES.ADMIN_USERS }}
+              className="mb-4"
+            />
             <div className="space-y-3">
-              {recentUsers.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex items-center justify-between p-3 rounded-none bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-none bg-primary/10 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-primary">person</span>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-900 dark:text-white">{user.name}</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">{user.email}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{user.joined}</p>
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-none text-xs font-semibold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
-                      {user.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
+              {loading ? (
+                <>
+                  <ListRowSkeleton />
+                  <ListRowSkeleton />
+                  <ListRowSkeleton />
+                </>
+              ) : recentUsers.length === 0 ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400 py-4 text-center">No users yet.</p>
+              ) : (
+                recentUsers.map((user) => (
+                  <RecentUserRow
+                    key={user.id}
+                    id={user.id}
+                    name={user.name}
+                    email={user.email}
+                    joined={user.joined}
+                    status={user.status}
+                  />
+                ))
+              )}
             </div>
           </RoundedBox>
 
           <RoundedBox padding="lg">
-            <SectionHeader title="Recent Trips" action={{ label: 'View All', href: '/admin/trips' }} className="mb-4" />
+            <SectionHeader
+              title="Recent Trips"
+              action={{ label: 'View All', href: ROUTES.ADMIN_TRIPS }}
+              className="mb-4"
+            />
             <div className="space-y-3">
-              {recentTrips.map((trip) => (
-                <div
-                  key={trip.id}
-                  className="flex items-center justify-between p-3 rounded-none bg-slate-50 dark:bg-slate-700/30 hover:bg-slate-100 dark:hover:bg-slate-700/50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-none bg-blue-500/10 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-blue-500">flight_takeoff</span>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-900 dark:text-white">{trip.title}</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">{trip.agency}</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-semibold text-slate-900 dark:text-white">{trip.price}</p>
-                    <p className="text-xs text-slate-500 dark:text-slate-400">{trip.bookings} bookings</p>
-                  </div>
-                </div>
-              ))}
+              {loading ? (
+                <>
+                  <ListRowSkeleton />
+                  <ListRowSkeleton />
+                  <ListRowSkeleton />
+                </>
+              ) : recentTrips.length === 0 ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400 py-4 text-center">No trips yet.</p>
+              ) : (
+                recentTrips.map((trip) => (
+                  <RecentTripRow
+                    key={trip.id}
+                    title={trip.title}
+                    agency={trip.agency}
+                    price={trip.priceLabel}
+                    bookings={trip.bookings}
+                  />
+                ))
+              )}
             </div>
           </RoundedBox>
         </section>
 
-        {/* Modals */}
-        <DetailModal
-          isOpen={selectedModal === 'users'}
-          onClose={() => setSelectedModal(null)}
-          title="All Users"
-        >
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <RoundedBox padding="md" className="text-center">
-                <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">Total</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.totalUsers.toLocaleString()}</p>
-              </RoundedBox>
-              <RoundedBox padding="md" className="text-center">
-                <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">Active</p>
-                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.activeUsers.toLocaleString()}</p>
-              </RoundedBox>
-              <RoundedBox padding="md" className="text-center">
-                <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">New This Month</p>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">+{stats.newUsersThisMonth}</p>
-              </RoundedBox>
-            </div>
-            <div className="space-y-2">
-              {recentUsers.map((user) => (
-                <div
-                  key={user.id}
-                  className="flex items-center justify-between p-4 rounded-none border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-none bg-primary/10 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-primary text-xl">person</span>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-900 dark:text-white">{user.name}</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">{user.email}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <span className="px-3 py-1 rounded-none text-sm font-medium bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300">
-                      {user.role}
-                    </span>
-                    <span className="px-3 py-1 rounded-none text-sm font-semibold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
-                      {user.status}
-                    </span>
-                  </div>
+        {selectedModal && (
+          <DetailModal
+            isOpen={!!selectedModal}
+            onClose={closeModal}
+            title={
+              selectedModal === 'users'
+                ? 'All Users'
+                : selectedModal === 'trips'
+                  ? 'Active Trips'
+                  : selectedModal === 'verified'
+                    ? 'Verified Agencies'
+                    : selectedModal === 'basic'
+                      ? 'Basic Agencies'
+                      : selectedModal === 'pending'
+                        ? 'Pending Verifications'
+                        : 'All Agencies'
+            }
+          >
+            {selectedModal === 'users' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                  <RoundedBox padding="md" className="text-center">
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">Total</p>
+                    <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.totalUsers.toLocaleString()}</p>
+                  </RoundedBox>
+                  <RoundedBox padding="md" className="text-center">
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">Active</p>
+                    <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">
+                      {stats.activeUsers.toLocaleString()}
+                    </p>
+                  </RoundedBox>
+                  <RoundedBox padding="md" className="text-center">
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">New This Month</p>
+                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">+{stats.newUsersThisMonth}</p>
+                  </RoundedBox>
                 </div>
-              ))}
-            </div>
-            <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-              <Button variant="outline" className="w-full">
-                View All Users
-              </Button>
-            </div>
-          </div>
-        </DetailModal>
-
-        <DetailModal
-          isOpen={selectedModal === 'trips'}
-          onClose={() => setSelectedModal(null)}
-          title="Active Trips"
-        >
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <RoundedBox padding="md" className="text-center">
-                <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">Total</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.totalTrips}</p>
-              </RoundedBox>
-              <RoundedBox padding="md" className="text-center">
-                <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">Active</p>
-                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.activeTrips}</p>
-              </RoundedBox>
-              <RoundedBox padding="md" className="text-center">
-                <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">Upcoming</p>
-                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.upcomingTrips}</p>
-              </RoundedBox>
-            </div>
-            <div className="space-y-2">
-              {recentTrips.map((trip) => (
-                <div
-                  key={trip.id}
-                  className="flex items-center justify-between p-4 rounded-none border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors"
-                >
-                  <div className="flex items-center gap-4">
-                    <div className="w-12 h-12 rounded-none bg-blue-500/10 flex items-center justify-center">
-                      <span className="material-symbols-outlined text-blue-500 text-xl">flight_takeoff</span>
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-900 dark:text-white">{trip.title}</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">{trip.agency}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-white">{trip.price}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">{trip.bookings} bookings</p>
-                    </div>
-                    <span className="px-3 py-1 rounded-none text-sm font-semibold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400">
-                      {trip.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-            <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-              <Button variant="outline" className="w-full">
-                View All Trips
-              </Button>
-            </div>
-          </div>
-        </DetailModal>
-
-        <DetailModal
-          isOpen={selectedModal === 'agencies'}
-          onClose={() => setSelectedModal(null)}
-          title="All Agencies"
-        >
-          <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4 mb-6">
-              <RoundedBox padding="md" className="text-center">
-                <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">Total</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-white">{stats.totalAgencies}</p>
-              </RoundedBox>
-              <RoundedBox padding="md" className="text-center">
-                <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">Verified</p>
-                <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.verifiedAgencies}</p>
-              </RoundedBox>
-              <RoundedBox padding="md" className="text-center">
-                <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">Basic</p>
-                <p className="text-2xl font-bold text-amber-600 dark:text-amber-400">{stats.basicAgencies}</p>
-              </RoundedBox>
-            </div>
-            <div className="space-y-2">
-              {agencies.map((agency) => (
-                <Link
-                  key={agency.id}
-                  href={`/admin/agencies/${agency.id}`}
-                  className="flex items-center justify-between p-4 rounded-none border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-4">
-                    <Avatar src={agency.avatar} name={agency.name} size="md" />
-                    <div>
-                      <p className="font-semibold text-slate-900 dark:text-white">{agency.name}</p>
-                      <p className="text-sm text-slate-500 dark:text-slate-400">{agency.email}</p>
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="material-symbols-outlined text-amber-400 text-sm">star</span>
-                        <span className="text-xs text-slate-600 dark:text-slate-400">
-                          {agency.rating.toFixed(1)} ({agency.reviewCount} reviews)
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-4">
-                    <div className="text-right">
-                      <p className="text-sm font-semibold text-slate-900 dark:text-white">{agency.trips} trips</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Joined {agency.joined}</p>
-                    </div>
-                    <span
-                      className={`px-3 py-1 rounded-none text-sm font-semibold ${
-                        agency.status === 'Verified'
-                          ? 'bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400'
-                          : 'bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400'
-                      }`}
+                <div className="space-y-2">
+                  {recentUsers.map((user) => (
+                    <div
+                      key={user.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-4 border border-slate-200 dark:border-slate-700"
                     >
-                      {agency.status}
-                    </span>
-                    <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">
-                      arrow_forward
-                    </span>
-                  </div>
+                      <div>
+                        <p className="font-semibold text-slate-900 dark:text-white">{user.name}</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">{user.email}</p>
+                      </div>
+                      <span className="px-3 py-1 text-sm font-medium bg-slate-100 dark:bg-slate-700">{user.role}</span>
+                    </div>
+                  ))}
+                </div>
+                <Link href={ROUTES.ADMIN_USERS}>
+                  <Button variant="outline" className="w-full">
+                    View All Users
+                  </Button>
                 </Link>
-              ))}
-            </div>
-            <div className="pt-4 border-t border-slate-200 dark:border-slate-700">
-              <Button variant="outline" className="w-full">
-                View All Agencies
-              </Button>
-            </div>
-          </div>
-        </DetailModal>
+              </div>
+            )}
 
-        <DetailModal
-          isOpen={selectedModal === 'verified'}
-          onClose={() => setSelectedModal(null)}
-          title="Verified Agencies"
-        >
-          <div className="space-y-4">
-            <div className="mb-4">
-              <p className="text-slate-600 dark:text-slate-400">
-                These agencies have completed verification and are fully active on the platform.
-              </p>
-            </div>
-            <div className="space-y-2">
-              {agencies
-                .filter((a) => a.status === 'Verified')
-                .map((agency) => (
-                  <Link
-                    key={agency.id}
-                    href={`/admin/agencies/${agency.id}`}
-                    className="flex items-center justify-between p-4 rounded-none border border-emerald-200 dark:border-emerald-500/20 bg-emerald-50/50 dark:bg-emerald-500/5 hover:bg-emerald-100/50 dark:hover:bg-emerald-500/10 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-4">
-                      <Avatar src={agency.avatar} name={agency.name} size="md" />
+            {selectedModal === 'trips' && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                  <RoundedBox padding="md" className="text-center">
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">Total</p>
+                    <p className="text-2xl font-bold">{stats.totalTrips}</p>
+                  </RoundedBox>
+                  <RoundedBox padding="md" className="text-center">
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">Active</p>
+                    <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{stats.activeTrips}</p>
+                  </RoundedBox>
+                  <RoundedBox padding="md" className="text-center">
+                    <p className="text-slate-500 dark:text-slate-400 text-sm mb-1">Upcoming</p>
+                    <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{stats.upcomingTrips}</p>
+                  </RoundedBox>
+                </div>
+                <div className="space-y-2">
+                  {recentTrips.map((trip) => (
+                    <div
+                      key={trip.id}
+                      className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 p-4 border border-slate-200 dark:border-slate-700"
+                    >
                       <div>
-                        <p className="font-semibold text-slate-900 dark:text-white">{agency.name}</p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">{agency.email}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="material-symbols-outlined text-amber-400 text-sm">star</span>
-                          <span className="text-xs text-slate-600 dark:text-slate-400">
-                            {agency.rating.toFixed(1)} ({agency.reviewCount} reviews)
-                          </span>
-                        </div>
+                        <p className="font-semibold text-slate-900 dark:text-white">{trip.title}</p>
+                        <p className="text-sm text-slate-500 dark:text-slate-400">{trip.agency}</p>
                       </div>
+                      <p className="text-sm font-semibold">{trip.priceLabel}</p>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{agency.trips} active trips</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Joined {agency.joined}</p>
-                      </div>
-                      <span className="px-3 py-1 rounded-none text-sm font-semibold bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-400 flex items-center gap-1">
-                        <span className="material-symbols-outlined text-sm">verified</span>
-                        Verified
-                      </span>
-                      <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">
-                        arrow_forward
-                      </span>
-                    </div>
-                  </Link>
-                ))}
-            </div>
-          </div>
-        </DetailModal>
+                  ))}
+                </div>
+                <Link href={ROUTES.ADMIN_TRIPS}>
+                  <Button variant="outline" className="w-full">
+                    View All Trips
+                  </Button>
+                </Link>
+              </div>
+            )}
 
-        <DetailModal
-          isOpen={selectedModal === 'basic'}
-          onClose={() => setSelectedModal(null)}
-          title="Basic Agencies"
-        >
-          <div className="space-y-4">
-            <div className="mb-4">
-              <p className="text-slate-600 dark:text-slate-400">
-                These agencies are registered but haven&apos;t completed verification yet. They have limited access to platform
-                features.
-              </p>
-            </div>
-            <div className="space-y-2">
-              {agencies
-                .filter((a) => a.status === 'Basic')
-                .map((agency) => (
-                  <Link
-                    key={agency.id}
-                    href={`/admin/agencies/${agency.id}`}
-                    className="flex items-center justify-between p-4 rounded-none border border-amber-200 dark:border-amber-500/20 bg-amber-50/50 dark:bg-amber-500/5 hover:bg-amber-100/50 dark:hover:bg-amber-500/10 transition-colors cursor-pointer"
-                  >
-                    <div className="flex items-center gap-4">
-                      <Avatar src={agency.avatar} name={agency.name} size="md" />
-                      <div>
-                        <p className="font-semibold text-slate-900 dark:text-white">{agency.name}</p>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">{agency.email}</p>
-                        <div className="flex items-center gap-2 mt-1">
-                          <span className="material-symbols-outlined text-amber-400 text-sm">star</span>
-                          <span className="text-xs text-slate-600 dark:text-slate-400">
-                            {agency.rating.toFixed(1)} ({agency.reviewCount} reviews)
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <div className="text-right">
-                        <p className="text-sm font-semibold text-slate-900 dark:text-white">{agency.trips} trips</p>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Joined {agency.joined}</p>
-                      </div>
-                      <span className="px-3 py-1 rounded-none text-sm font-semibold bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-400">
-                        Basic
-                      </span>
-                      <span className="material-symbols-outlined text-slate-400 dark:text-slate-500">
-                        arrow_forward
-                      </span>
-                    </div>
-                  </Link>
-                ))}
-            </div>
-          </div>
-        </DetailModal>
+            {(selectedModal === 'agencies' || selectedModal === 'verified' || selectedModal === 'basic') && (
+              <div className="space-y-4">
+                {agenciesLoading ? (
+                  <p className="text-sm text-slate-500 py-8 text-center">Loading agencies…</p>
+                ) : (
+                  <AgencyModalList
+                    agencies={agencies}
+                    filter={selectedModal === 'verified' ? 'Verified' : selectedModal === 'basic' ? 'Basic' : undefined}
+                    variant={selectedModal === 'verified' ? 'verified' : selectedModal === 'basic' ? 'basic' : 'default'}
+                  />
+                )}
+              </div>
+            )}
+
+            {selectedModal === 'pending' && (
+              <div className="space-y-4">
+                {agenciesLoading ? (
+                  <p className="text-sm text-slate-500 py-8 text-center">Loading agencies…</p>
+                ) : (
+                  <PendingVerificationList
+                    agencies={agencies}
+                    busyId={reviewBusyId}
+                    onReview={handleReview}
+                  />
+                )}
+              </div>
+            )}
+          </DetailModal>
+        )}
       </main>
     </div>
   )

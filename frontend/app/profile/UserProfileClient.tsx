@@ -24,6 +24,7 @@ import { profileService } from '@/services/profile.service'
 import { agencyProfileService } from '@/services/agency-profile.service'
 import { phoneInTextValidationMessage } from '@/shared/utils/phone-in-text'
 import { estimateTripPricePkr, clampTripPricePkr, TRIP_PRICE_MIN_PKR, TRIP_PRICE_MAX_PKR } from '@/shared/utils/currency'
+import { TRIP_LISTING_FEE_PKR } from '@/config/fees'
 import { AvatarPicker } from '@/shared/components/profile/AvatarPicker'
 import { userDtoToEntity } from '@/shared/lib/supabase/profile'
 import type { WalletSummaryDTO } from '@/types/api/wallet.types'
@@ -754,6 +755,14 @@ export default function UserProfileClient() {
             </div>
           </div>
 
+          <div className="flex items-center gap-2 p-3 rounded-none bg-amber-50 dark:bg-amber-500/10 border border-amber-200 dark:border-amber-500/20">
+            <span className="material-symbols-outlined text-[18px] text-amber-500">info</span>
+            <p className="text-xs text-amber-700 dark:text-amber-400">
+              A Rs {TRIP_LISTING_FEE_PKR.toLocaleString()} listing fee is charged from your agency
+              wallet when you post a trip.
+            </p>
+          </div>
+
           <div className="flex justify-end gap-2">
             <Button
               variant="outline"
@@ -1111,15 +1120,30 @@ export default function UserProfileClient() {
             />
           </div>
 
+          {process.env.NODE_ENV === 'development' && (
+            <RoundedBox padding="md" className="space-y-3">
+              <AlertBox
+                variant="info"
+                title="Demo mode"
+                message="Real top-ups are not connected yet. Use the button below to add test PKR so you can pay verification and trip listing fees."
+              />
+              <Button variant="outline" onClick={handleDemoWalletTopUp} disabled={walletSeeding}>
+                {walletSeeding ? 'Adding…' : 'Add Rs. 10,000 (demo)'}
+              </Button>
+            </RoundedBox>
+          )}
+
           <RoundedBox padding="lg" className="space-y-4">
-            <h3 className="text-slate-900 dark:text-white font-semibold">Recent Earnings</h3>
+            <h3 className="text-slate-900 dark:text-white font-semibold">Recent Activity</h3>
             {walletSummary.transactions.length === 0 ? (
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                No earnings yet. Accept a booking request to receive payment.
+                No activity yet. Accept a booking request to receive payment.
               </p>
             ) : (
               <div className="space-y-3 text-sm">
-                {walletSummary.transactions.map((tx) => (
+                {walletSummary.transactions.map((tx) => {
+                  const isCredit = tx.amount > 0
+                  return (
                     <div
                       key={tx.id}
                       className="flex items-center justify-between py-2 px-3 rounded-none bg-slate-50 dark:bg-slate-800/60"
@@ -1130,11 +1154,19 @@ export default function UserProfileClient() {
                           {formatWalletTimeAgo(tx.createdAt)}
                         </p>
                       </div>
-                      <div className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">
-                        +{formatPrice(Math.abs(tx.amount))}
+                      <div
+                        className={`text-sm font-semibold ${
+                          isCredit
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-red-600 dark:text-red-400'
+                        }`}
+                      >
+                        {isCredit ? '+' : '-'}
+                        {formatPrice(Math.abs(tx.amount))}
                       </div>
                     </div>
-                  ))}
+                  )
+                })}
               </div>
             )}
           </RoundedBox>

@@ -3,6 +3,7 @@ import { createAdminSupabaseClient } from '@/shared/lib/supabase/admin'
 import { formatSupabaseError } from '@/shared/lib/supabase/format-error'
 import { provisionAppUser, type AppUserRole } from '@/shared/lib/supabase/provision-user'
 import { cnicValidationMessage } from '@/shared/utils/cnic'
+import { VERIFICATION_FEE_PKR } from '@/config/fees'
 
 export async function POST(request: Request) {
   try {
@@ -14,6 +15,7 @@ export async function POST(request: Request) {
     const confirmPassword = String(body.confirmPassword ?? '')
     const role = body.role as AppUserRole
     const cnic = String(body.cnic ?? '').trim()
+    const wantVerifiedAgency = Boolean(body.wantVerifiedAgency) && role === 'Agency'
 
     if (!fullName || !email || !password) {
       return NextResponse.json({ error: 'Full name, email, and password are required.' }, { status: 400 })
@@ -70,6 +72,42 @@ export async function POST(request: Request) {
     } else if (role === 'Agency') {
       const { ensureAgencyWallet } = await import('@/shared/lib/wallet/server')
       await ensureAgencyWallet(admin, uid)
+    }
+
+    if (wantVerifiedAgency) {
+      // Dev has no real payment gateway, so auto-fund the agency wallet first.
+      if (process.env.NODE_ENV !== 'production') {
+        const { error: fundErr } = await admin.rpc('credit_agency_wallet_demo', {
+          p_user_id: uid,
+          p_amount: VERIFICATION_FEE_PKR,
+        })
+        if (fundErr) {
+          return NextResponse.json({ error: formatSupabaseError(fundErr) }, { status: 400 })
+        }
+      }
+
+      const { error: feeErr } = await admin.rpc('pay_agency_platform_fee', {
+        p_agency_user_id: uid,
+        p_amount: VERIFICATION_FEE_PKR,
+        p_fee_type: 'verification',
+      })
+      if (feeErr) {
+        return NextResponse.json(
+          {
+            error:
+              'Account created, but the verification fee could not be charged. Top up your agency wallet and apply again.',
+          },
+          { status: 402 }
+        )
+      }
+
+      const { error: statusErr } = await admin
+        .from('agencies')
+        .update({ verification_status: 'pending_approval' })
+        .eq('user_id', uid)
+      if (statusErr) {
+        return NextResponse.json({ error: formatSupabaseError(statusErr) }, { status: 400 })
+      }
     }
 
     return NextResponse.json({ userId: uid })

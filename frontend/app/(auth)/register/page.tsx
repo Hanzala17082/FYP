@@ -13,6 +13,7 @@ import { CityAutocomplete } from '@/shared/components/ui/CityAutocomplete'
 import { useAuth } from '@/shared/contexts/AuthContext'
 import { setAuthCookies, getLoginRedirectRoute } from '@/shared/utils/auth'
 import { User } from '@/types/entities/user.entity'
+import { VERIFICATION_FEE_PKR } from '@/config/fees'
 
 export default function RegisterPage() {
   const router = useRouter()
@@ -28,6 +29,7 @@ export default function RegisterPage() {
   })
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [wantVerifiedAgency, setWantVerifiedAgency] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -60,6 +62,7 @@ export default function RegisterPage() {
         password: formData.password,
         confirmPassword: formData.confirmPassword,
         role,
+        wantVerifiedAgency: role === 'Agency' ? wantVerifiedAgency : false,
       })
       const payload = res.data
       if (!payload?.accessToken || !payload?.user) {
@@ -128,7 +131,10 @@ export default function RegisterPage() {
                 <span className="truncate">Traveler</span>
                 <input
                   checked={role === 'Traveler'}
-                  onChange={() => setRole('Traveler')}
+                  onChange={() => {
+                    setRole('Traveler')
+                    setWantVerifiedAgency(false)
+                  }}
                   className="invisible w-0"
                   name="role_selector"
                   type="radio"
@@ -275,6 +281,27 @@ export default function RegisterPage() {
                 </div>
               </div>
             </label>
+
+            {role === 'Agency' && (
+              <label className="flex w-full cursor-pointer items-start gap-3 p-4 rounded-none border border-slate-200 dark:border-white/20 bg-white dark:bg-white/5 has-[:checked]:border-primary has-[:checked]:bg-primary/5 transition-colors">
+                <input
+                  type="checkbox"
+                  checked={wantVerifiedAgency}
+                  onChange={(e) => setWantVerifiedAgency(e.target.checked)}
+                  className="mt-0.5 h-5 w-5 shrink-0 accent-primary"
+                />
+                <span className="flex flex-col">
+                  <span className="flex items-center gap-1.5 text-sm font-semibold text-slate-900 dark:text-white">
+                    <span className="material-symbols-outlined text-[18px] text-primary">verified</span>
+                    Apply for Verified Agency badge
+                  </span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                    Rs {VERIFICATION_FEE_PKR.toLocaleString()} per month, charged now from your agency
+                    wallet. An admin reviews and approves your application before the badge appears.
+                  </span>
+                </span>
+              </label>
+            )}
 
             {error && (
               <div className="w-full p-3 rounded-none bg-red-50 dark:bg-red-500/10 border border-red-200 dark:border-red-500/20">

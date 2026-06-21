@@ -4,6 +4,12 @@ from users.models import User
 
 
 class Agency(models.Model):
+    class VerificationStatus(models.TextChoices):
+        NONE = 'none', 'None'
+        PENDING_APPROVAL = 'pending_approval', 'Pending Approval'
+        APPROVED = 'approved', 'Approved'
+        REJECTED = 'rejected', 'Rejected'
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='agency')
     agency_name = models.CharField(max_length=255)
@@ -14,6 +20,12 @@ class Agency(models.Model):
     rating = models.DecimalField(max_digits=2, decimal_places=1, default=0)
     review_count = models.IntegerField(default=0)
     verified = models.BooleanField(default=False)
+    verification_status = models.CharField(
+        max_length=20,
+        choices=VerificationStatus.choices,
+        default=VerificationStatus.NONE,
+    )
+    verification_paid_until = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

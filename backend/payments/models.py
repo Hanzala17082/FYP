@@ -14,7 +14,9 @@ from decimal import Decimal
 from django.db import models
 
 from bookings.models import Booking
+from trips.models import Trip
 from users.models import User
+from vendors.models import Agency
 
 
 class Wallet(models.Model):
@@ -64,4 +66,36 @@ class WalletTransaction(models.Model):
         db_table = 'wallet_transactions'
         indexes = [
             models.Index(fields=['wallet', '-created_at']),
+        ]
+
+
+class PlatformFee(models.Model):
+    """Fees the platform charges agencies: verification subscription + per-trip listing."""
+
+    class FeeType(models.TextChoices):
+        VERIFICATION = 'verification', 'Verification'
+        TRIP_LISTING = 'trip_listing', 'Trip Listing'
+
+    id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    agency = models.ForeignKey(
+        Agency,
+        on_delete=models.CASCADE,
+        related_name='platform_fees',
+    )
+    trip = models.ForeignKey(
+        Trip,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='platform_fees',
+    )
+    fee_type = models.CharField(max_length=20, choices=FeeType.choices)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = 'platform_fees'
+        indexes = [
+            models.Index(fields=['agency', '-created_at']),
+            models.Index(fields=['-created_at']),
         ]

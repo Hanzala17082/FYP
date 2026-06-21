@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { createAdminSupabaseClient } from '@/shared/lib/supabase/admin'
 import { createRouteHandlerSupabaseClient } from '@/shared/lib/supabase/route-handler'
 
 export type AuthenticatedRouteUser = {
@@ -25,7 +26,8 @@ export async function requireAuthenticatedUser():
     }
   }
 
-  const { data: profile, error: profileErr } = await supabase
+  const admin = createAdminSupabaseClient()
+  const { data: profile, error: profileErr } = await admin
     .from('users')
     .select('role, email')
     .eq('id', user.id)

@@ -1,6 +1,6 @@
 import { createBrowserSupabaseClient } from '@/shared/lib/supabase/client'
 import { formatSupabaseError } from '@/shared/lib/supabase/format-error'
-import { mapAgencyRow, mapBookingRow, mapTripRow, mapUserRow } from '@/shared/lib/supabase/mappers'
+import { mapAgencyRow, mapBookingRow } from '@/shared/lib/supabase/mappers'
 import type { BookingDTO } from '@/types/api/bookings.types'
 import type { TripDTO, AgencyDTO } from '@/types/api/trips.types'
 import type { UserDTO } from '@/types/api/auth.types'
@@ -35,16 +35,42 @@ export interface AgencyDashboardResponse {
 
 export interface AdminDashboardStats {
   totalUsers: number
+  activeUsers: number
+  newUsersThisMonth: number
   totalAgencies: number
+  verifiedAgencies: number
+  basicAgencies: number
+  pendingVerifications: number
   totalTrips: number
+  activeTrips: number
+  upcomingTrips: number
   totalBookings: number
+  revenue: number
+  verificationFees: number
+  tripListingFees: number
+  newUsersToday: number
+  tripsCreatedToday: number
+  bookingsToday: number
+  revenueToday: number
 }
+
+export type AgencyVerificationStatus = 'none' | 'pending_approval' | 'approved' | 'rejected'
 
 export interface AdminDashboardResponse {
   stats: AdminDashboardStats
   recentUsers: UserDTO[]
-  recentTrips: TripDTO[]
-  recentAgencies: AgencyDTO[]
+  recentTrips: AdminTripSummary[]
+}
+
+export interface AdminTripSummary extends TripDTO {
+  bookingCount: number
+}
+
+export interface AdminAgencySummary extends AgencyDTO {
+  email: string
+  tripCount: number
+  joinedAt: string
+  verificationStatus: AgencyVerificationStatus
 }
 
 function todayIsoDate(): string {
@@ -151,43 +177,14 @@ export const dashboardService = {
     const {
       data: { session },
     } = await sb.auth.getSession()
-    if (!session) throw new Error('Authentication required.')
+    if (!session?.access_token) throw new Error('Authentication required.')
 
-    const { data: me } = await sb.from('users').select('role').eq('id', session.user.id).maybeSingle()
-    if (!me || String((me as { role: string }).role) !== 'Admin') {
-      throw new Error('Forbidden.')
-    }
-
-    const [{ count: totalUsers }, { count: totalAgencies }, { count: totalTrips }, { count: totalBookings }] =
-      await Promise.all([
-        sb.from('users').select('*', { count: 'exact', head: true }),
-        sb.from('agencies').select('*', { count: 'exact', head: true }),
-        sb.from('trips').select('*', { count: 'exact', head: true }),
-        sb.from('bookings').select('*', { count: 'exact', head: true }),
-      ])
-
-    const { data: usersData } = await sb.from('users').select('*').order('created_at', { ascending: false }).limit(8)
-    const { data: tripsData } = await sb
-      .from('trips')
-      .select(TRIP_EMBED)
-      .order('created_at', { ascending: false })
-      .limit(8)
-    const { data: agenciesData } = await sb
-      .from('agencies')
-      .select('*, users(avatar_url)')
-      .order('created_at', { ascending: false })
-      .limit(8)
-
-    return {
-      stats: {
-        totalUsers: totalUsers ?? 0,
-        totalAgencies: totalAgencies ?? 0,
-        totalTrips: totalTrips ?? 0,
-        totalBookings: totalBookings ?? 0,
-      },
-      recentUsers: ((usersData ?? []) as Record<string, unknown>[]).map((r) => mapUserRow(r)),
-      recentTrips: ((tripsData ?? []) as Record<string, unknown>[]).map((r) => mapTripRow(r, false)),
-      recentAgencies: ((agenciesData ?? []) as Record<string, unknown>[]).map((r) => mapAgencyRow(r)),
-    }
+    const res = await fetch('/api/admin/dashboard', {
+      headers: { Authorization: `Bearer ${session.access_token}` },
+      cache: 'no-store',
+    })
+    const body = (await res.json().catch(() => ({}))) as AdminDashboardResponse & { error?: string }
+    if (!res.ok) throw new Error(body.error ?? 'Failed to load admin dashboard.')
+    return body
   },
 }

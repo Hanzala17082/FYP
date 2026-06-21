@@ -37,6 +37,13 @@ class Command(BaseCommand):
 
     @transaction.atomic
     def handle(self, *args, **options):
+        self.stdout.write(
+            self.style.WARNING(
+                'DEPRECATED: prefer `npm run seed:demo` '
+                '(frontend/scripts/reset-and-seed-demo.mjs), which seeds loginable '
+                'Supabase Auth users plus richer trips. See REHNUM/DEMO_USERS.md.'
+            )
+        )
         force = options['force']
         active_n = Trip.objects.filter(status=Trip.Status.ACTIVE).count()
         if active_n > 0 and not force:

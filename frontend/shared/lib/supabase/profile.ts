@@ -1,7 +1,6 @@
 'use client'
 
 import { createBrowserSupabaseClient } from '@/shared/lib/supabase/client'
-import { mapUserRow } from '@/shared/lib/supabase/mappers'
 import type { UserDTO } from '@/types/api/auth.types'
 import type { User } from '@/types/entities/user.entity'
 
@@ -21,12 +20,28 @@ export function userDtoToEntity(dto: UserDTO): User {
 
 export async function fetchUserDTO(userId: string): Promise<UserDTO> {
   const sb = createBrowserSupabaseClient()
-  const { data, error } = await sb.from('users').select('*').eq('id', userId).maybeSingle()
-  if (error) throw error
-  if (!data) {
+  const {
+    data: { session },
+  } = await sb.auth.getSession()
+
+  const headers: Record<string, string> = {}
+  if (session?.access_token) {
+    headers.Authorization = `Bearer ${session.access_token}`
+  }
+
+  const res = await fetch('/api/auth/me', { headers, cache: 'no-store' })
+  const body = (await res.json().catch(() => ({}))) as UserDTO & { error?: string }
+
+  if (!res.ok) {
     throw new Error(
-      'No profile row in public.users for this account. Sync Supabase Auth users with public.users (see README).'
+      body.error ??
+        'No profile row in public.users for this account. Run `npm run seed:demo` from frontend/.'
     )
   }
-  return mapUserRow(data as Record<string, unknown>)
+
+  if (body.id !== userId) {
+    throw new Error('Profile session mismatch.')
+  }
+
+  return body
 }

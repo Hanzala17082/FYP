@@ -1,10 +1,7 @@
 import { createBrowserSupabaseClient } from '@/shared/lib/supabase/client'
 import { formatSupabaseError } from '@/shared/lib/supabase/format-error'
 import { ok } from '@/shared/lib/supabase/response'
-import {
-  mapTripRow,
-  slugifyTitle,
-} from '@/shared/lib/supabase/mappers'
+import { mapTripRow } from '@/shared/lib/supabase/mappers'
 import type {
   TripDTO,
   TripListResponseDTO,
@@ -22,34 +19,6 @@ const SELECT_DETAIL =
 
 function parseUuid(slugOrUuid: string): boolean {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(slugOrUuid)
-}
-
-async function resolveAgencyIdForTrip(sb: ReturnType<typeof createBrowserSupabaseClient>, agencyId?: string) {
-  const {
-    data: { session },
-  } = await sb.auth.getSession()
-  if (!session) throw new Error('Authentication required.')
-  const { data: me } = await sb.from('users').select('id, role').eq('id', session.user.id).single()
-  if (!me) throw new Error('Profile not found.')
-
-  const role = me.role as string
-  if (role === 'Agency') {
-    const { data: ag } = await sb.from('agencies').select('id').eq('user_id', session.user.id).maybeSingle()
-    if (!ag) throw new Error('Agency profile not found.')
-    return String((ag as { id: string }).id)
-  }
-  if (role === 'Admin') {
-    if (!agencyId) throw new Error('Admin must provide agencyId when creating a trip.')
-    return agencyId
-  }
-  throw new Error('Only Agency or Admin can create trips.')
-}
-
-function activityTimeSql(timeStr: string): string {
-  const parts = timeStr.split(':').map((p) => p.trim())
-  const h = Number(parts[0] ?? 0)
-  const m = Number(parts[1] ?? 0)
-  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}:00`
 }
 
 /** Optional request config (e.g. signal for AbortController). */
@@ -178,89 +147,16 @@ export const tripsService = {
   },
 
   createTrip: async (data: CreateTripRequestDTO): Promise<ApiResponse<TripDTO>> => {
-    const sb = createBrowserSupabaseClient()
-    const agencyId = await resolveAgencyIdForTrip(sb, data.agencyId)
-
-    const tripId = crypto.randomUUID()
-    const slug = `${slugifyTitle(data.title)}-${tripId.slice(0, 8)}`
-
-    const payload = {
-      id: tripId,
-      agency_id: agencyId,
-      title: data.title,
-      slug,
-      description: data.description ?? '',
-      short_description: (data.shortDescription || data.title).slice(0, 500),
-      destination: data.destination ?? '',
-      price: data.price,
-      duration_days: data.duration,
-      images: data.images ?? [],
-      rating: 0,
-      review_count: 0,
-      available_dates: data.availableDates ?? [],
-      start_date: data.startDate,
-      end_date: data.endDate,
-      status: 'pending',
-      tags: data.tags ?? [],
+    const res = await fetch('/api/trips/create', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+    const body = await res.json().catch(() => ({}))
+    if (!res.ok) {
+      throw new Error(typeof body.error === 'string' ? body.error : 'Failed to create trip.')
     }
-
-    const { error: tripErr } = await sb.from('trips').insert(payload)
-    if (tripErr) throw new Error(formatSupabaseError(tripErr))
-
-    let sortOrder = 0
-    for (const text of data.highlights ?? []) {
-      const { error } = await sb.from('trip_highlights').insert({
-        id: crypto.randomUUID(),
-        trip_id: tripId,
-        text,
-        sort_order: sortOrder++,
-      })
-      if (error) throw new Error(formatSupabaseError(error))
-    }
-
-    for (const s of data.schedule ?? []) {
-      const schId = crypto.randomUUID()
-      const { error: schErr } = await sb.from('trip_schedules').insert({
-        id: schId,
-        trip_id: tripId,
-        day: s.day ?? 0,
-        date: s.date,
-        title: s.title ?? '',
-      })
-      if (schErr) throw new Error(formatSupabaseError(schErr))
-      for (const a of s.activities ?? []) {
-        const { error: actErr } = await sb.from('trip_schedule_activities').insert({
-          id: crypto.randomUUID(),
-          schedule_id: schId,
-          time: activityTimeSql(a.time || '00:00'),
-          activity: a.activity ?? '',
-        })
-        if (actErr) throw new Error(formatSupabaseError(actErr))
-      }
-    }
-
-    let rSort = 0
-    for (const r of data.recreationalActivities ?? []) {
-      const { error: recErr } = await sb.from('trip_recreational_activities').insert({
-        id: crypto.randomUUID(),
-        trip_id: tripId,
-        name: r.name ?? '',
-        description: r.description ?? '',
-        duration: r.duration ?? '',
-        included: r.included ?? false,
-        additional_cost: r.additionalCost ?? null,
-        sort_order: rSort++,
-      })
-      if (recErr) throw new Error(formatSupabaseError(recErr))
-    }
-
-    const { data: row, error: fetchErr } = await sb
-      .from('trips')
-      .select(SELECT_DETAIL)
-      .eq('id', tripId)
-      .single()
-
-    if (fetchErr || !row) throw new Error(fetchErr ? formatSupabaseError(fetchErr) : 'Trip created but failed to load.')
-    return ok(mapTripRow(row as Record<string, unknown>, true))
+    return ok(body.trip as TripDTO)
   },
 }
